@@ -148,9 +148,23 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
                 if license_response.status_code == 200 and license_response.parsed:
                     license_data = license_response.parsed
                     license_info = {
-                        "status": getattr(license_data, "status", "Unknown"),
-                        "edition": getattr(license_data, "edition", "Unknown"),
-                        "type": getattr(license_data, "type", "Unknown"),
+                        "status": (
+                            license_data.status.value
+                            if hasattr(license_data, "status")
+                            and hasattr(license_data.status, "value")
+                            else str(getattr(license_data, "status", "Unknown"))
+                        ),
+                        "edition": (
+                            license_data.edition.value
+                            if hasattr(license_data, "edition")
+                            and hasattr(license_data.edition, "value")
+                            else str(getattr(license_data, "edition", "Unknown"))
+                        ),
+                        "type": (
+                            license_data.type.value
+                            if hasattr(license_data, "type") and hasattr(license_data.type, "value")
+                            else str(getattr(license_data, "type", "Unknown"))
+                        ),
                         "expiration_date": getattr(license_data, "expiration_date", None),
                         "support_expiration_date": getattr(
                             license_data, "support_expiration_date", None

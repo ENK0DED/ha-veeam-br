@@ -162,19 +162,26 @@ class VeeamLicenseSensor(CoordinatorEntity, SensorEntity):
 
     @property
     def native_value(self) -> str | None:
-        data = self.coordinator.data.get("license_info") if self.coordinator.data else None
-        return data.get("status") if data else None
+        if not self.coordinator.data:
+            return None
+        license_info = self.coordinator.data.get("license_info")
+        if not license_info:
+            return None
+        return license_info.get("status")
 
     @property
     def extra_state_attributes(self) -> dict[str, Any]:
-        return self.coordinator.data.get("license_info") if self.coordinator.data else {}
+        if not self.coordinator.data:
+            return {}
+        license_info = self.coordinator.data.get("license_info")
+        return license_info if license_info else {}
 
     @property
     def icon(self) -> str:
         state = self.native_value
-        if state == "Valid":
+        if state and state.lower() == "valid":
             return "mdi:license"
-        if state == "Expired":
+        if state and state.lower() == "expired":
             return "mdi:license-off"
         return "mdi:license"
 
