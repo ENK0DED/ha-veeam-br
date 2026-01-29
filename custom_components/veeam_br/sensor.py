@@ -5,8 +5,9 @@ from __future__ import annotations
 import logging
 from typing import Any
 
-from homeassistant.components.sensor import SensorEntity
+from homeassistant.components.sensor import SensorEntity, SensorDeviceClass
 from homeassistant.config_entries import ConfigEntry
+from homeassistant.const import EntityCategory
 from homeassistant.core import HomeAssistant, callback
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 from homeassistant.helpers.update_coordinator import CoordinatorEntity
@@ -38,37 +39,68 @@ async def async_setup_entry(
 
         new_entities = []
 
-        # ---- JOB SENSORS (dynamic) ----
+        # ---- JOB SENSORS (dynamic) - Each job becomes a device with multiple sensors ----
         for job in coordinator.data.get("jobs", []):
             job_id = job.get("id")
             if not job_id or job_id in added_job_ids:
                 continue
 
-            new_entities.append(VeeamJobSensor(coordinator, entry, job))
+            # Create sensors for each job attribute
+            new_entities.extend(
+                [
+                    VeeamJobStatusSensor(coordinator, entry, job),
+                    VeeamJobTypeSensor(coordinator, entry, job),
+                    VeeamJobLastResultSensor(coordinator, entry, job),
+                    VeeamJobLastRunSensor(coordinator, entry, job),
+                    VeeamJobNextRunSensor(coordinator, entry, job),
+                ]
+            )
             added_job_ids.add(job_id)
 
-        # ---- REPOSITORY SENSORS (dynamic) ----
+        # ---- REPOSITORY SENSORS (dynamic) - Each repository becomes a device with multiple sensors ----
         for repository in coordinator.data.get("repositories", []):
             repo_id = repository.get("id")
             if not repo_id or repo_id in added_repository_ids:
                 continue
 
-            new_entities.append(VeeamRepositorySensor(coordinator, entry, repository))
+            # Create sensors for each repository attribute
+            new_entities.extend(
+                [
+                    VeeamRepositoryTypeSensor(coordinator, entry, repository),
+                    VeeamRepositoryDescriptionSensor(coordinator, entry, repository),
+                ]
+            )
             added_repository_ids.add(repo_id)
             _LOGGER.debug(
-                "Adding repository sensor for: %s (id: %s)",
+                "Adding repository sensors for: %s (id: %s)",
                 repository.get("name"),
                 repo_id,
             )
 
-        # ---- SERVER SENSOR (once) ----
+        # ---- SERVER SENSORS (once) - Server info becomes a device with multiple sensors ----
         if not server_added and coordinator.data.get("server_info"):
-            new_entities.append(VeeamServerInfoSensor(coordinator, entry))
+            new_entities.extend(
+                [
+                    VeeamServerBuildVersionSensor(coordinator, entry),
+                    VeeamServerNameSensor(coordinator, entry),
+                    VeeamServerPlatformSensor(coordinator, entry),
+                    VeeamServerDatabaseVendorSensor(coordinator, entry),
+                ]
+            )
             server_added = True
 
-        # ---- LICENSE SENSOR (once) ----
+        # ---- LICENSE SENSORS (once) - License becomes a device with multiple sensors ----
         if not license_added and coordinator.data.get("license_info"):
-            new_entities.append(VeeamLicenseSensor(coordinator, entry))
+            new_entities.extend(
+                [
+                    VeeamLicenseStatusSensor(coordinator, entry),
+                    VeeamLicenseEditionSensor(coordinator, entry),
+                    VeeamLicenseTypeSensor(coordinator, entry),
+                    VeeamLicenseExpirationSensor(coordinator, entry),
+                    VeeamLicenseSupportExpirationSensor(coordinator, entry),
+                    VeeamLicenseLicensedToSensor(coordinator, entry),
+                ]
+            )
             license_added = True
 
         if new_entities:
@@ -82,17 +114,19 @@ async def async_setup_entry(
     coordinator.async_add_listener(_sync_entities)
 
 
-class VeeamJobSensor(CoordinatorEntity, SensorEntity):
-    """Representation of a Veeam Backup Job sensor."""
+# ===========================
+# JOB SENSORS (device per job)
+# ===========================
+
+
+class VeeamJobBaseSensor(CoordinatorEntity, SensorEntity):
+    """Base class for Veeam Job sensors."""
 
     def __init__(self, coordinator, config_entry, job_data):
         super().__init__(coordinator)
         self._config_entry = config_entry
         self._job_id = job_data.get("id")
         self._job_name = job_data.get("name", "Unknown Job")
-
-        self._attr_unique_id = f"{config_entry.entry_id}_job_{self._job_id}"
-        self._attr_name = f"Job - {self._job_name}"
 
     def _job(self) -> dict[str, Any] | None:
         if not self.coordinator.data:
@@ -103,12 +137,31 @@ class VeeamJobSensor(CoordinatorEntity, SensorEntity):
         return None
 
     @property
+    def device_info(self):
+        """Return device info for this job."""
+        return {
+            "identifiers": {(DOMAIN, f"job_{self._job_id}")},
+            "name": f"Job - {self._job_name}",
+            "manufacturer": "Veeam",
+            "model": "Backup Job",
+            "via_device": (DOMAIN, self._config_entry.entry_id),
+        }
+
+
+class VeeamJobStatusSensor(VeeamJobBaseSensor):
+    """Sensor for Veeam Job Status."""
+
+    def __init__(self, coordinator, config_entry, job_data):
+        super().__init__(coordinator, config_entry, job_data)
+        self._attr_unique_id = f"{config_entry.entry_id}_job_{self._job_id}_status"
+        self._attr_name = "Status"
+        self._attr_entity_category = None
+
+    @property
     def native_value(self) -> str | None:
         job = self._job()
         if not job:
             return None
-        # Use last_result as the main state since icons are based on result (success/failed/warning)
-        # If job is currently running, show that instead
         status = job.get("status", "").lower()
         if status in ("running", "starting"):
             return "running"
@@ -116,13 +169,8 @@ class VeeamJobSensor(CoordinatorEntity, SensorEntity):
         return last_result if last_result else "unknown"
 
     @property
-    def extra_state_attributes(self) -> dict[str, Any]:
-        return self._job() or {}
-
-    @property
     def icon(self) -> str:
         state = self.native_value
-        # native_value returns lowercase state strings
         if state == "running":
             return "mdi:backup-restore"
         if state == "success":
@@ -133,72 +181,237 @@ class VeeamJobSensor(CoordinatorEntity, SensorEntity):
             return "mdi:close-circle"
         return "mdi:cloud-sync"
 
+
+class VeeamJobTypeSensor(VeeamJobBaseSensor):
+    """Sensor for Veeam Job Type."""
+
+    def __init__(self, coordinator, config_entry, job_data):
+        super().__init__(coordinator, config_entry, job_data)
+        self._attr_unique_id = f"{config_entry.entry_id}_job_{self._job_id}_type"
+        self._attr_name = "Type"
+        self._attr_entity_category = EntityCategory.DIAGNOSTIC
+
     @property
-    def device_info(self):
-        return {
-            "identifiers": {(DOMAIN, self._config_entry.entry_id)},
-            "name": f"Veeam B&R ({self._config_entry.data.get('host')})",
-            "manufacturer": "Veeam",
-            "model": "Backup & Replication",
-        }
+    def native_value(self) -> str | None:
+        job = self._job()
+        return job.get("type") if job else None
+
+    @property
+    def icon(self) -> str:
+        return "mdi:file-tree"
 
 
-class VeeamServerInfoSensor(CoordinatorEntity, SensorEntity):
-    """Representation of the Veeam Backup Server Info sensor."""
+class VeeamJobLastResultSensor(VeeamJobBaseSensor):
+    """Sensor for Veeam Job Last Result."""
+
+    def __init__(self, coordinator, config_entry, job_data):
+        super().__init__(coordinator, config_entry, job_data)
+        self._attr_unique_id = f"{config_entry.entry_id}_job_{self._job_id}_last_result"
+        self._attr_name = "Last Result"
+        self._attr_entity_category = None
+
+    @property
+    def native_value(self) -> str | None:
+        job = self._job()
+        return job.get("last_result") if job else None
+
+    @property
+    def icon(self) -> str:
+        result = self.native_value
+        if result and result.lower() == "success":
+            return "mdi:check-circle"
+        if result and result.lower() == "warning":
+            return "mdi:alert"
+        if result and result.lower() == "failed":
+            return "mdi:close-circle"
+        return "mdi:help-circle"
+
+
+class VeeamJobLastRunSensor(VeeamJobBaseSensor):
+    """Sensor for Veeam Job Last Run."""
+
+    def __init__(self, coordinator, config_entry, job_data):
+        super().__init__(coordinator, config_entry, job_data)
+        self._attr_unique_id = f"{config_entry.entry_id}_job_{self._job_id}_last_run"
+        self._attr_name = "Last Run"
+        self._attr_device_class = SensorDeviceClass.TIMESTAMP
+        self._attr_entity_category = EntityCategory.DIAGNOSTIC
+
+    @property
+    def native_value(self):
+        job = self._job()
+        return job.get("last_run") if job else None
+
+    @property
+    def icon(self) -> str:
+        return "mdi:clock-start"
+
+
+class VeeamJobNextRunSensor(VeeamJobBaseSensor):
+    """Sensor for Veeam Job Next Run."""
+
+    def __init__(self, coordinator, config_entry, job_data):
+        super().__init__(coordinator, config_entry, job_data)
+        self._attr_unique_id = f"{config_entry.entry_id}_job_{self._job_id}_next_run"
+        self._attr_name = "Next Run"
+        self._attr_device_class = SensorDeviceClass.TIMESTAMP
+        self._attr_entity_category = EntityCategory.DIAGNOSTIC
+
+    @property
+    def native_value(self):
+        job = self._job()
+        return job.get("next_run") if job else None
+
+    @property
+    def icon(self) -> str:
+        return "mdi:clock-end"
+
+
+# ===========================
+# SERVER INFO SENSORS (single device)
+# ===========================
+
+
+class VeeamServerBaseSensor(CoordinatorEntity, SensorEntity):
+    """Base class for Veeam Server Info sensors."""
 
     def __init__(self, coordinator, config_entry):
         super().__init__(coordinator)
         self._config_entry = config_entry
-        self._attr_unique_id = f"{config_entry.entry_id}_server_info"
-        self._attr_name = "Veeam Server Info"
+
+    def _server_info(self) -> dict[str, Any] | None:
+        return self.coordinator.data.get("server_info") if self.coordinator.data else None
+
+    @property
+    def device_info(self):
+        """Return device info for the Veeam server."""
+        server_info = self._server_info()
+        server_name = server_info.get("name", "Unknown") if server_info else "Unknown"
+        return {
+            "identifiers": {(DOMAIN, f"server_{self._config_entry.entry_id}")},
+            "name": f"Veeam Server - {server_name}",
+            "manufacturer": "Veeam",
+            "model": "Backup & Replication Server",
+            "via_device": (DOMAIN, self._config_entry.entry_id),
+        }
+
+
+class VeeamServerBuildVersionSensor(VeeamServerBaseSensor):
+    """Sensor for Veeam Server Build Version."""
+
+    def __init__(self, coordinator, config_entry):
+        super().__init__(coordinator, config_entry)
+        self._attr_unique_id = f"{config_entry.entry_id}_server_build_version"
+        self._attr_name = "Build Version"
+        self._attr_entity_category = EntityCategory.DIAGNOSTIC
 
     @property
     def native_value(self) -> str | None:
-        data = self.coordinator.data.get("server_info") if self.coordinator.data else None
-        return data.get("build_version") if data else None
+        server_info = self._server_info()
+        return server_info.get("build_version") if server_info else None
 
     @property
-    def extra_state_attributes(self) -> dict[str, Any]:
-        return self.coordinator.data.get("server_info") if self.coordinator.data else {}
+    def icon(self) -> str:
+        return "mdi:tag"
+
+
+class VeeamServerNameSensor(VeeamServerBaseSensor):
+    """Sensor for Veeam Server Name."""
+
+    def __init__(self, coordinator, config_entry):
+        super().__init__(coordinator, config_entry)
+        self._attr_unique_id = f"{config_entry.entry_id}_server_name"
+        self._attr_name = "Server Name"
+        self._attr_entity_category = EntityCategory.DIAGNOSTIC
+
+    @property
+    def native_value(self) -> str | None:
+        server_info = self._server_info()
+        return server_info.get("name") if server_info else None
 
     @property
     def icon(self) -> str:
         return "mdi:server"
 
+
+class VeeamServerPlatformSensor(VeeamServerBaseSensor):
+    """Sensor for Veeam Server Platform."""
+
+    def __init__(self, coordinator, config_entry):
+        super().__init__(coordinator, config_entry)
+        self._attr_unique_id = f"{config_entry.entry_id}_server_platform"
+        self._attr_name = "Platform"
+        self._attr_entity_category = EntityCategory.DIAGNOSTIC
+
     @property
-    def device_info(self):
-        return {
-            "identifiers": {(DOMAIN, self._config_entry.entry_id)},
-            "name": f"Veeam B&R ({self._config_entry.data.get('host')})",
-            "manufacturer": "Veeam",
-            "model": "Backup & Replication",
-        }
+    def native_value(self) -> str | None:
+        server_info = self._server_info()
+        return server_info.get("platform") if server_info else None
+
+    @property
+    def icon(self) -> str:
+        return "mdi:desktop-tower"
 
 
-class VeeamLicenseSensor(CoordinatorEntity, SensorEntity):
-    """Representation of the Veeam Backup License sensor."""
+class VeeamServerDatabaseVendorSensor(VeeamServerBaseSensor):
+    """Sensor for Veeam Server Database Vendor."""
+
+    def __init__(self, coordinator, config_entry):
+        super().__init__(coordinator, config_entry)
+        self._attr_unique_id = f"{config_entry.entry_id}_server_database_vendor"
+        self._attr_name = "Database Vendor"
+        self._attr_entity_category = EntityCategory.DIAGNOSTIC
+
+    @property
+    def native_value(self) -> str | None:
+        server_info = self._server_info()
+        return server_info.get("database_vendor") if server_info else None
+
+    @property
+    def icon(self) -> str:
+        return "mdi:database"
+
+
+# ===========================
+# LICENSE SENSORS (single device)
+# ===========================
+
+
+class VeeamLicenseBaseSensor(CoordinatorEntity, SensorEntity):
+    """Base class for Veeam License sensors."""
 
     def __init__(self, coordinator, config_entry):
         super().__init__(coordinator)
         self._config_entry = config_entry
-        self._attr_unique_id = f"{config_entry.entry_id}_license"
-        self._attr_name = "Veeam License"
+
+    def _license_info(self) -> dict[str, Any] | None:
+        return self.coordinator.data.get("license_info") if self.coordinator.data else None
+
+    @property
+    def device_info(self):
+        """Return device info for the Veeam license."""
+        return {
+            "identifiers": {(DOMAIN, f"license_{self._config_entry.entry_id}")},
+            "name": "Veeam License",
+            "manufacturer": "Veeam",
+            "model": "License",
+            "via_device": (DOMAIN, self._config_entry.entry_id),
+        }
+
+
+class VeeamLicenseStatusSensor(VeeamLicenseBaseSensor):
+    """Sensor for Veeam License Status."""
+
+    def __init__(self, coordinator, config_entry):
+        super().__init__(coordinator, config_entry)
+        self._attr_unique_id = f"{config_entry.entry_id}_license_status"
+        self._attr_name = "Status"
+        self._attr_entity_category = None
 
     @property
     def native_value(self) -> str | None:
-        if not self.coordinator.data:
-            return None
-        license_info = self.coordinator.data.get("license_info")
-        if not license_info:
-            return None
-        return license_info.get("status")
-
-    @property
-    def extra_state_attributes(self) -> dict[str, Any]:
-        if not self.coordinator.data:
-            return {}
-        license_info = self.coordinator.data.get("license_info")
-        return license_info if license_info else {}
+        license_info = self._license_info()
+        return license_info.get("status") if license_info else None
 
     @property
     def icon(self) -> str:
@@ -209,27 +422,117 @@ class VeeamLicenseSensor(CoordinatorEntity, SensorEntity):
             return "mdi:license-off"
         return "mdi:license"
 
+
+class VeeamLicenseEditionSensor(VeeamLicenseBaseSensor):
+    """Sensor for Veeam License Edition."""
+
+    def __init__(self, coordinator, config_entry):
+        super().__init__(coordinator, config_entry)
+        self._attr_unique_id = f"{config_entry.entry_id}_license_edition"
+        self._attr_name = "Edition"
+        self._attr_entity_category = EntityCategory.DIAGNOSTIC
+
     @property
-    def device_info(self):
-        return {
-            "identifiers": {(DOMAIN, self._config_entry.entry_id)},
-            "name": f"Veeam B&R ({self._config_entry.data.get('host')})",
-            "manufacturer": "Veeam",
-            "model": "Backup & Replication",
-        }
+    def native_value(self) -> str | None:
+        license_info = self._license_info()
+        return license_info.get("edition") if license_info else None
+
+    @property
+    def icon(self) -> str:
+        return "mdi:certificate"
 
 
-class VeeamRepositorySensor(CoordinatorEntity, SensorEntity):
-    """Representation of a Veeam Backup Repository sensor."""
+class VeeamLicenseTypeSensor(VeeamLicenseBaseSensor):
+    """Sensor for Veeam License Type."""
+
+    def __init__(self, coordinator, config_entry):
+        super().__init__(coordinator, config_entry)
+        self._attr_unique_id = f"{config_entry.entry_id}_license_type"
+        self._attr_name = "Type"
+        self._attr_entity_category = EntityCategory.DIAGNOSTIC
+
+    @property
+    def native_value(self) -> str | None:
+        license_info = self._license_info()
+        return license_info.get("type") if license_info else None
+
+    @property
+    def icon(self) -> str:
+        return "mdi:file-document"
+
+
+class VeeamLicenseExpirationSensor(VeeamLicenseBaseSensor):
+    """Sensor for Veeam License Expiration Date."""
+
+    def __init__(self, coordinator, config_entry):
+        super().__init__(coordinator, config_entry)
+        self._attr_unique_id = f"{config_entry.entry_id}_license_expiration"
+        self._attr_name = "Expiration Date"
+        self._attr_device_class = SensorDeviceClass.TIMESTAMP
+        self._attr_entity_category = EntityCategory.DIAGNOSTIC
+
+    @property
+    def native_value(self):
+        license_info = self._license_info()
+        return license_info.get("expiration_date") if license_info else None
+
+    @property
+    def icon(self) -> str:
+        return "mdi:calendar-end"
+
+
+class VeeamLicenseSupportExpirationSensor(VeeamLicenseBaseSensor):
+    """Sensor for Veeam License Support Expiration Date."""
+
+    def __init__(self, coordinator, config_entry):
+        super().__init__(coordinator, config_entry)
+        self._attr_unique_id = f"{config_entry.entry_id}_license_support_expiration"
+        self._attr_name = "Support Expiration Date"
+        self._attr_device_class = SensorDeviceClass.TIMESTAMP
+        self._attr_entity_category = EntityCategory.DIAGNOSTIC
+
+    @property
+    def native_value(self):
+        license_info = self._license_info()
+        return license_info.get("support_expiration_date") if license_info else None
+
+    @property
+    def icon(self) -> str:
+        return "mdi:calendar-clock"
+
+
+class VeeamLicenseLicensedToSensor(VeeamLicenseBaseSensor):
+    """Sensor for Veeam License Licensed To."""
+
+    def __init__(self, coordinator, config_entry):
+        super().__init__(coordinator, config_entry)
+        self._attr_unique_id = f"{config_entry.entry_id}_license_licensed_to"
+        self._attr_name = "Licensed To"
+        self._attr_entity_category = EntityCategory.DIAGNOSTIC
+
+    @property
+    def native_value(self) -> str | None:
+        license_info = self._license_info()
+        return license_info.get("licensed_to") if license_info else None
+
+    @property
+    def icon(self) -> str:
+        return "mdi:account"
+
+
+# ===========================
+# REPOSITORY SENSORS (device per repository)
+# ===========================
+
+
+class VeeamRepositoryBaseSensor(CoordinatorEntity, SensorEntity):
+    """Base class for Veeam Repository sensors."""
 
     def __init__(self, coordinator, config_entry, repository_data):
         super().__init__(coordinator)
         self._config_entry = config_entry
         self._repo_id = repository_data.get("id")
         self._repo_name = repository_data.get("name", "Unknown Repository")
-
-        self._attr_unique_id = f"{config_entry.entry_id}_repository_{self._repo_id}"
-        self._attr_name = f"Repository - {self._repo_name}"
 
     def _repository(self) -> dict[str, Any] | None:
         if not self.coordinator.data:
@@ -240,16 +543,30 @@ class VeeamRepositorySensor(CoordinatorEntity, SensorEntity):
         return None
 
     @property
-    def native_value(self) -> str | None:
-        repo = self._repository()
-        if not repo:
-            return None
-        # Use repository type as the main state
-        return repo.get("type", "unknown")
+    def device_info(self):
+        """Return device info for this repository."""
+        return {
+            "identifiers": {(DOMAIN, f"repository_{self._repo_id}")},
+            "name": f"Repository - {self._repo_name}",
+            "manufacturer": "Veeam",
+            "model": "Backup Repository",
+            "via_device": (DOMAIN, self._config_entry.entry_id),
+        }
+
+
+class VeeamRepositoryTypeSensor(VeeamRepositoryBaseSensor):
+    """Sensor for Veeam Repository Type."""
+
+    def __init__(self, coordinator, config_entry, repository_data):
+        super().__init__(coordinator, config_entry, repository_data)
+        self._attr_unique_id = f"{config_entry.entry_id}_repository_{self._repo_id}_type"
+        self._attr_name = "Type"
+        self._attr_entity_category = EntityCategory.DIAGNOSTIC
 
     @property
-    def extra_state_attributes(self) -> dict[str, Any]:
-        return self._repository() or {}
+    def native_value(self) -> str | None:
+        repo = self._repository()
+        return repo.get("type", "unknown") if repo else None
 
     @property
     def icon(self) -> str:
@@ -268,11 +585,21 @@ class VeeamRepositorySensor(CoordinatorEntity, SensorEntity):
             return "mdi:database-cluster"
         return "mdi:database"
 
+
+class VeeamRepositoryDescriptionSensor(VeeamRepositoryBaseSensor):
+    """Sensor for Veeam Repository Description."""
+
+    def __init__(self, coordinator, config_entry, repository_data):
+        super().__init__(coordinator, config_entry, repository_data)
+        self._attr_unique_id = f"{config_entry.entry_id}_repository_{self._repo_id}_description"
+        self._attr_name = "Description"
+        self._attr_entity_category = EntityCategory.DIAGNOSTIC
+
     @property
-    def device_info(self):
-        return {
-            "identifiers": {(DOMAIN, self._config_entry.entry_id)},
-            "name": f"Veeam B&R ({self._config_entry.data.get('host')})",
-            "manufacturer": "Veeam",
-            "model": "Backup & Replication",
-        }
+    def native_value(self) -> str | None:
+        repo = self._repository()
+        return repo.get("description", "") if repo else None
+
+    @property
+    def icon(self) -> str:
+        return "mdi:text"
