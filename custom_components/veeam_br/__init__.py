@@ -29,8 +29,10 @@ PLATFORMS: list[Platform] = [Platform.SENSOR]
 
 async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     """Set up Veeam Backup & Replication from a config entry."""
-    # Get API version from config or use default
-    api_version = entry.data.get(CONF_API_VERSION, DEFAULT_API_VERSION)
+    # Get API version from options with fallback to data, then default
+    api_version = entry.options.get(
+        CONF_API_VERSION, entry.data.get(CONF_API_VERSION, DEFAULT_API_VERSION)
+    )
     api_module = API_VERSIONS.get(api_version, "v1_3_rev1")
 
     # Import the veeam_br library dynamically based on API version
@@ -40,7 +42,25 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
         )
         get_all_jobs = get_all_jobs_module
     except ImportError as err:
-        _LOGGER.error("Failed to import veeam_br library for API version %s: %s", api_version, err)
+        # Provide more specific feedback about what went wrong during import
+        error_message: str
+        if isinstance(err, ModuleNotFoundError):
+            missing_name = getattr(err, "name", "") or ""
+            if missing_name == "veeam_br":
+                error_message = "veeam_br library is not installed"
+            elif missing_name.startswith(f"veeam_br.{api_module}"):
+                error_message = f"API version {api_version} is not supported or not available"
+            else:
+                error_message = "A required veeam_br module could not be found"
+        else:
+            error_message = "An unexpected import error occurred while loading the veeam_br library"
+
+        _LOGGER.error(
+            "Failed to import veeam_br library for API version %s: %s (%s)",
+            api_version,
+            error_message,
+            err,
+        )
         return False
 
     # Construct base URL

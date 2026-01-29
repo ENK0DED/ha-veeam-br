@@ -41,9 +41,7 @@ async def validate_input(hass: HomeAssistant, data: dict[str, Any]) -> dict[str,
         create_token_module = importlib.import_module(
             f"veeam_br.{api_module}.api.login.create_token"
         )
-        models_module = importlib.import_module(
-            f"veeam_br.{api_module}.models.e_login_grant_type"
-        )
+        models_module = importlib.import_module(f"veeam_br.{api_module}.models.e_login_grant_type")
         token_spec_module = importlib.import_module(
             f"veeam_br.{api_module}.models.token_login_spec"
         )
@@ -63,8 +61,7 @@ async def validate_input(hass: HomeAssistant, data: dict[str, Any]) -> dict[str,
                 error_message = f"API version {api_version} is not supported or not available"
             else:
                 error_message = (
-                    "A required veeam_br module could not be found "
-                    "(see logs for details)"
+                    "A required veeam_br module could not be found " "(see logs for details)"
                 )
         else:
             error_message = (
@@ -191,18 +188,13 @@ class VeeamBROptionsFlow(config_entries.OptionsFlow):
                 _LOGGER.exception("Unexpected exception validating new API version")
                 errors["base"] = "unknown"
             else:
-                # Only update if validation passed
-                self.hass.config_entries.async_update_entry(
-                    self.config_entry,
-                    data={
-                        **self.config_entry.data,
-                        CONF_API_VERSION: user_input[CONF_API_VERSION],
-                    },
-                )
-                return self.async_create_entry(title="", data={})
+                # Only update if validation passed - store in options
+                return self.async_create_entry(title="", data=user_input)
 
-        # Get current API version from config entry
-        current_api_version = self.config_entry.data.get(CONF_API_VERSION, DEFAULT_API_VERSION)
+        # Get current API version from config entry options or data
+        current_api_version = self.config_entry.options.get(
+            CONF_API_VERSION, self.config_entry.data.get(CONF_API_VERSION, DEFAULT_API_VERSION)
+        )
 
         options_schema = vol.Schema(
             {
