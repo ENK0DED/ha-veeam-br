@@ -92,7 +92,7 @@ async def validate_input(hass: HomeAssistant, data: dict[str, Any]) -> dict[str,
     except Exception as err:
         raise ConnectionError(f"Failed to connect: {err}") from err
 
-    return {"title": f"Veeam BR ({data[CONF_HOST]})"}
+    return {"title": f"Veeam B&R ({data[CONF_HOST]})"}
 
 
 class VeeamBRConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
