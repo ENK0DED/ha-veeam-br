@@ -96,7 +96,7 @@ class VeeamJobSensor(CoordinatorEntity, SensorEntity):
         # If job is currently running, show that instead
         status = job.get("status", "").lower()
         if status in ("running", "starting"):
-            return "Running"
+            return "running"
         last_result = job.get("last_result", "").lower()
         return last_result if last_result else "unknown"
 
@@ -107,13 +107,14 @@ class VeeamJobSensor(CoordinatorEntity, SensorEntity):
     @property
     def icon(self) -> str:
         state = self.native_value
-        if state and state.lower() == "running":
+        # native_value returns lowercase state strings
+        if state == "running":
             return "mdi:backup-restore"
-        if state and state.lower() == "success":
+        if state == "success":
             return "mdi:check-circle"
-        if state and state.lower() == "warning":
+        if state == "warning":
             return "mdi:alert"
-        if state and state.lower() == "failed":
+        if state == "failed":
             return "mdi:close-circle"
         return "mdi:cloud-sync"
 

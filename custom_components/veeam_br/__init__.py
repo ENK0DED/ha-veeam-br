@@ -45,6 +45,9 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
         get_installed_license = importlib.import_module(
             f"veeam_br.{api_module}.api.license_.get_installed_license"
         )
+        # Import UNSET type for proper type checking
+        types_module = importlib.import_module(f"veeam_br.{api_module}.types")
+        UNSET = types_module.UNSET
     except ImportError as err:
         _LOGGER.error("Failed to import veeam_br API: %s", err)
         return False
@@ -101,10 +104,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
             # Helper function to safely get enum value
             def get_enum_value(enum_val, default="unknown"):
                 """Extract enum value, handling both enum types and UNSET."""
-                if enum_val is None:
-                    return default
-                # Check if it's UNSET
-                if hasattr(enum_val, "__class__") and enum_val.__class__.__name__ == "Unset":
+                if enum_val is None or enum_val is UNSET:
                     return default
                 # Try to get enum value
                 if hasattr(enum_val, "value"):
@@ -114,25 +114,26 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
             # Helper function to safely get datetime
             def get_datetime_value(dt_val):
                 """Extract datetime value, handling UNSET."""
-                if dt_val is None:
-                    return None
-                # Check if it's UNSET
-                if hasattr(dt_val, "__class__") and dt_val.__class__.__name__ == "Unset":
+                if dt_val is None or dt_val is UNSET:
                     return None
                 return dt_val
 
-            jobs_list = [
-                {
-                    "id": str(job.id),
-                    "name": job.name or "Unknown",
-                    "type": get_enum_value(job.type_),
-                    "status": get_enum_value(job.status),
-                    "last_result": get_enum_value(job.last_result),
-                    "last_run": get_datetime_value(job.last_run),
-                    "next_run": get_datetime_value(job.next_run),
-                }
-                for job in jobs_data
-            ]
+            jobs_list = []
+            for job in jobs_data:
+                try:
+                    job_dict = {
+                        "id": str(job.id),
+                        "name": job.name or "Unknown",
+                        "type": get_enum_value(job.type_),
+                        "status": get_enum_value(job.status),
+                        "last_result": get_enum_value(job.last_result),
+                        "last_run": get_datetime_value(job.last_run),
+                        "next_run": get_datetime_value(job.next_run),
+                    }
+                    jobs_list.append(job_dict)
+                except (AttributeError, TypeError) as err:
+                    _LOGGER.warning("Failed to parse job: %s", err)
+                    continue
 
             # Fetch server information
             server_info = None
