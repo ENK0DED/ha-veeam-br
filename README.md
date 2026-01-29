@@ -33,20 +33,22 @@ This project is an independent, open source project. It is not affiliated with, 
 
 ### HACS (Recommended)
 
-1. Open HACS in your Home Assistant instance
-2. Click on "Integrations"
-3. Click the three dots in the top right corner
-4. Select "Custom repositories"
-5. Add this repository URL: `https://github.com/Cenvora/ha-veeam-br`
-6. Select category: "Integration"
-7. Click "Add"
-8. Click "Install" on the Veeam Backup & Replication card
-9. Restart Home Assistant
+Have [HACS](https://hacs.xyz/) installed, this will allow you to update easily.
 
-### Manual Installation
+* Adding ha-veeam-br to HACS can be using this button:
+[![image](https://my.home-assistant.io/badges/hacs_repository.svg)](https://my.home-assistant.io/redirect/hacs_repository/?owner=Cenvora&repository=ha-veeam-br&category=integration)
 
-1. Copy the `custom_components/veeam_br` directory to your Home Assistant's `custom_components` directory
-2. Restart Home Assistant
+> [!NOTE]
+> If the button above doesn't work, add `https://github.com/Cenvora/ha-veeam-br` as a custom repository of type Integration in HACS.
+
+* Click install on the `Veeam Backup & Replication` integration.
+* Restart Home Assistant.
+
+<details><summary>Manual Install</summary>
+
+* Copy the `ha-veeam-br`  folder from [latest release](https://github.com/Cenvora/ha-veeam-br/releases/latest) to the [`custom_components` folder](https://developers.home-assistant.io/docs/creating_integration_file_structure/#where-home-assistant-looks-for-integrations) in your config directory.
+* Restart the Home Assistant.
+</details>
 
 ## Configuration
 
