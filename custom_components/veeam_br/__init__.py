@@ -267,10 +267,21 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
                         # Handle enum types
                         if hasattr(value, "value"):
                             return value.value
-                        # Convert UUID to string
+                        # Convert remaining types to string as fallback
                         try:
-                            return str(value)
-                        except Exception:
+                            str_value = str(value)
+                            _LOGGER.debug(
+                                "Serialized unexpected type %s to string: %s",
+                                type(value).__name__,
+                                str_value[:50],
+                            )
+                            return str_value
+                        except Exception as err:
+                            _LOGGER.warning(
+                                "Failed to serialize value of type %s: %s",
+                                type(value).__name__,
+                                err,
+                            )
                             return None
 
                     for repo in repositories_data:
