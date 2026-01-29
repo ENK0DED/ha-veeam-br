@@ -145,6 +145,24 @@ class VeeamBRConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
             else:
                 return self.async_create_entry(title=info["title"], data=user_input)
 
+        # Ensure the default API version is in the available options
+        # If not, use the first available option
+        api_version_options = list(API_VERSIONS.keys())
+        if DEFAULT_API_VERSION in api_version_options:
+            api_version_default = DEFAULT_API_VERSION
+        elif api_version_options:
+            api_version_default = api_version_options[0]
+            _LOGGER.warning(
+                "Default API version %s not available, using %s",
+                DEFAULT_API_VERSION,
+                api_version_default,
+            )
+        else:
+            # Fallback if API_VERSIONS is somehow empty (should never happen)
+            api_version_options = [DEFAULT_API_VERSION]
+            api_version_default = DEFAULT_API_VERSION
+            _LOGGER.error("No API versions available, using fallback")
+
         # Show the form
         data_schema = vol.Schema(
             {
@@ -154,10 +172,10 @@ class VeeamBRConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
                 vol.Required(CONF_PASSWORD): cv.string,
                 vol.Optional(CONF_VERIFY_SSL, default=DEFAULT_VERIFY_SSL): cv.boolean,
                 vol.Optional(
-                    CONF_API_VERSION, default=DEFAULT_API_VERSION
+                    CONF_API_VERSION, default=api_version_default
                 ): selector.SelectSelector(
                     selector.SelectSelectorConfig(
-                        options=list(API_VERSIONS.keys()),
+                        options=api_version_options,
                         mode=selector.SelectSelectorMode.DROPDOWN,
                     )
                 ),
@@ -201,22 +219,39 @@ class VeeamBROptionsFlow(config_entries.OptionsFlow):
             CONF_API_VERSION, self.config_entry.data.get(CONF_API_VERSION, DEFAULT_API_VERSION)
         )
 
-        # Ensure current_api_version is valid, fallback to default if not
-        if current_api_version not in API_VERSIONS:
+        # Ensure the current API version is in the available options
+        # If not, use the first available option
+        api_version_options = list(API_VERSIONS.keys())
+        if current_api_version in api_version_options:
+            api_version_default = current_api_version
+        elif DEFAULT_API_VERSION in api_version_options:
+            api_version_default = DEFAULT_API_VERSION
             _LOGGER.warning(
-                "Current API version %s not available, falling back to %s",
+                "Current API version %s not available, using default %s",
                 current_api_version,
                 DEFAULT_API_VERSION,
             )
-            current_api_version = DEFAULT_API_VERSION
+        elif api_version_options:
+            api_version_default = api_version_options[0]
+            _LOGGER.warning(
+                "Current API version %s and default %s not available, using %s",
+                current_api_version,
+                DEFAULT_API_VERSION,
+                api_version_default,
+            )
+        else:
+            # Fallback if API_VERSIONS is somehow empty (should never happen)
+            api_version_options = [DEFAULT_API_VERSION]
+            api_version_default = DEFAULT_API_VERSION
+            _LOGGER.error("No API versions available, using fallback")
 
         options_schema = vol.Schema(
             {
                 vol.Required(
-                    CONF_API_VERSION, default=current_api_version
+                    CONF_API_VERSION, default=api_version_default
                 ): selector.SelectSelector(
                     selector.SelectSelectorConfig(
-                        options=list(API_VERSIONS.keys()),
+                        options=api_version_options,
                         mode=selector.SelectSelectorMode.DROPDOWN,
                     )
                 ),
