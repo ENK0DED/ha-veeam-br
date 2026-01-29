@@ -51,11 +51,32 @@ async def validate_input(hass: HomeAssistant, data: dict[str, Any]) -> dict[str,
         ELoginGrantType = models_module.ELoginGrantType
         TokenLoginSpec = token_spec_module.TokenLoginSpec
     except ImportError as err:
-        _LOGGER.error("Failed to import veeam_br library for API version %s: %s", api_version, err)
-        raise ConnectionError(
-            f"veeam_br library not installed or API version {api_version} not supported"
-        ) from err
+        # Provide more specific feedback about what went wrong during import.
+        error_message: str
+        if isinstance(err, ModuleNotFoundError):
+            missing_name = getattr(err, "name", "") or ""
+            if missing_name == "veeam_br":
+                error_message = "veeam_br library is not installed"
+            elif missing_name.startswith(f"veeam_br.{api_module}"):
+                error_message = f"API version {api_version} is not supported or not available"
+            else:
+                error_message = (
+                    "A required veeam_br module could not be found "
+                    "(see logs for details)"
+                )
+        else:
+            error_message = (
+                "An unexpected import error occurred while loading the veeam_br library "
+                "(see logs for details)"
+            )
 
+        _LOGGER.error(
+            "Error importing veeam_br for API version %s: %s (%s)",
+            api_version,
+            error_message,
+            err,
+        )
+        raise ConnectionError(error_message) from err
     # Construct base URL
     base_url = f"https://{data[CONF_HOST]}:{data[CONF_PORT]}"
 
