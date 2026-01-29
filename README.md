@@ -19,6 +19,8 @@ A Home Assistant custom integration that monitors Veeam Backup & Replication ser
 
 ## Installation
 
+> **Note**: The required `veeam-br` Python library is automatically installed by Home Assistant when you add this integration. No manual package installation is needed.
+
 ### HACS (Recommended)
 
 1. Open HACS in your Home Assistant instance
@@ -168,4 +170,4 @@ This project is licensed under the terms included in the LICENSE file.
 
 ## Credits
 
-This integration uses the [veeam-br](https://github.com/Cenvora/veeam-br) Python library for communication with Veeam Backup & Replication servers.
+This integration uses the [veeam-br](https://github.com/Cenvora/veeam-br) Python library for communication with Veeam Backup & Replication servers. The library is automatically installed by Home Assistant when you add this integration - no manual installation required.
