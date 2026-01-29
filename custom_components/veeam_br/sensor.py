@@ -4,7 +4,7 @@ from __future__ import annotations
 import logging
 from typing import Any
 
-from homeassistant.components.sensor import SensorEntity, SensorDeviceClass
+from homeassistant.components.sensor import SensorEntity
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
@@ -45,39 +45,40 @@ class VeeamJobSensor(CoordinatorEntity, SensorEntity):
         # Set unique ID
         self._attr_unique_id = f"{config_entry.entry_id}_{self._job_id}"
         self._attr_name = f"Veeam {self._job_name}"
+    
+    def _find_job_data(self) -> dict[str, Any] | None:
+        """Find the job data for this sensor from coordinator data."""
+        if not self.coordinator.data:
+            return None
+            
+        for job in self.coordinator.data:
+            job_id = job.get("id", job.get("name"))
+            if job_id == self._job_id:
+                return job
+        
+        return None
         
     @property
     def native_value(self) -> str | None:
         """Return the state of the sensor."""
-        if not self.coordinator.data:
-            return None
-            
-        # Find this job in the coordinator data
-        for job in self.coordinator.data:
-            job_id = job.get("id", job.get("name"))
-            if job_id == self._job_id:
-                return job.get("status", "unknown")
-        
+        job_data = self._find_job_data()
+        if job_data:
+            return job_data.get("status", "unknown")
         return None
 
     @property
     def extra_state_attributes(self) -> dict[str, Any]:
         """Return additional attributes."""
-        if not self.coordinator.data:
-            return {}
-            
-        # Find this job in the coordinator data
-        for job in self.coordinator.data:
-            job_id = job.get("id", job.get("name"))
-            if job_id == self._job_id:
-                return {
-                    "job_id": job.get("id"),
-                    "job_name": job.get("name"),
-                    "job_type": job.get("type"),
-                    "last_run": job.get("last_run"),
-                    "next_run": job.get("next_run"),
-                    "last_result": job.get("last_result"),
-                }
+        job_data = self._find_job_data()
+        if job_data:
+            return {
+                "job_id": job_data.get("id"),
+                "job_name": job_data.get("name"),
+                "job_type": job_data.get("type"),
+                "last_run": job_data.get("last_run"),
+                "next_run": job_data.get("next_run"),
+                "last_result": job_data.get("last_result"),
+            }
         
         return {}
 
@@ -100,7 +101,7 @@ class VeeamJobSensor(CoordinatorEntity, SensorEntity):
         """Return device information about this entity."""
         return {
             "identifiers": {(DOMAIN, self._config_entry.entry_id)},
-            "name": f"Veeam BR ({self._config_entry.data['host']})",
+            "name": f"Veeam BR ({self._config_entry.data.get('host', 'Unknown')})",
             "manufacturer": "Veeam",
             "model": "Backup & Replication",
         }

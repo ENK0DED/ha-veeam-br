@@ -32,7 +32,7 @@ async def validate_input(hass: HomeAssistant, data: dict[str, Any]) -> dict[str,
         from veeam_br import VeeamClient
     except ImportError as err:
         _LOGGER.error("Failed to import veeam_br library: %s", err)
-        raise ValueError("veeam_br library not installed") from err
+        raise ConnectionError("veeam_br library not installed") from err
 
     # Create a client instance and test the connection
     client = VeeamClient(
@@ -46,9 +46,15 @@ async def validate_input(hass: HomeAssistant, data: dict[str, Any]) -> dict[str,
     # Test connection
     try:
         await hass.async_add_executor_job(client.test_connection)
-    except Exception as err:
+    except PermissionError as err:
+        _LOGGER.error("Authentication failed: %s", err)
+        raise
+    except ConnectionError as err:
         _LOGGER.error("Failed to connect to Veeam server: %s", err)
         raise
+    except Exception as err:
+        _LOGGER.error("Unexpected error during connection test: %s", err)
+        raise ConnectionError(f"Failed to connect: {err}") from err
 
     # Return info that you want to store in the config entry.
     return {"title": f"Veeam BR ({data[CONF_HOST]})"}
@@ -74,12 +80,10 @@ class VeeamBRConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
 
             try:
                 info = await validate_input(self.hass, user_input)
-            except ValueError:
-                errors["base"] = "cannot_connect"
-            except ConnectionError:
-                errors["base"] = "cannot_connect"
             except PermissionError:
                 errors["base"] = "invalid_auth"
+            except ConnectionError:
+                errors["base"] = "cannot_connect"
             except Exception:  # pylint: disable=broad-except
                 _LOGGER.exception("Unexpected exception")
                 errors["base"] = "unknown"
