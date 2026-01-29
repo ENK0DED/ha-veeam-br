@@ -24,11 +24,18 @@ async def async_setup_entry(
     """Set up Veeam Backup & Replication sensors from a config entry."""
     coordinator = hass.data[DOMAIN][entry.entry_id]["coordinator"]
 
-    # Create sensors for each backup job
+    # Create sensors for each backup job and server info
     entities = []
     if coordinator.data:
-        for job in coordinator.data:
+        # Add job sensors
+        jobs = coordinator.data.get("jobs", [])
+        for job in jobs:
             entities.append(VeeamJobSensor(coordinator, entry, job))
+
+        # Add server info sensor if available
+        server_info = coordinator.data.get("server_info")
+        if server_info:
+            entities.append(VeeamServerInfoSensor(coordinator, entry, server_info))
 
     async_add_entities(entities)
 
@@ -52,7 +59,8 @@ class VeeamJobSensor(CoordinatorEntity, SensorEntity):
         if not self.coordinator.data:
             return None
 
-        for job in self.coordinator.data:
+        jobs = self.coordinator.data.get("jobs", [])
+        for job in jobs:
             job_id = job.get("id", job.get("name"))
             if job_id == self._job_id:
                 return job
@@ -96,6 +104,67 @@ class VeeamJobSensor(CoordinatorEntity, SensorEntity):
         elif state == "failed":
             return "mdi:close-circle"
         return "mdi:cloud-sync"
+
+    @property
+    def device_info(self):
+        """Return device information about this entity."""
+        return {
+            "identifiers": {(DOMAIN, self._config_entry.entry_id)},
+            "name": f"Veeam BR ({self._config_entry.data.get('host', 'Unknown')})",
+            "manufacturer": "Veeam",
+            "model": "Backup & Replication",
+        }
+
+
+class VeeamServerInfoSensor(CoordinatorEntity, SensorEntity):
+    """Representation of a Veeam Backup Server Info sensor."""
+
+    def __init__(self, coordinator, config_entry, server_info):
+        """Initialize the sensor."""
+        super().__init__(coordinator)
+        self._config_entry = config_entry
+
+        # Set unique ID
+        self._attr_unique_id = f"{config_entry.entry_id}_server_info"
+        self._attr_name = "Veeam Server Info"
+
+    def _find_server_info(self) -> dict[str, Any] | None:
+        """Find the server info from coordinator data."""
+        if not self.coordinator.data:
+            return None
+        return self.coordinator.data.get("server_info")
+
+    @property
+    def native_value(self) -> str | None:
+        """Return the state of the sensor."""
+        server_info = self._find_server_info()
+        if server_info:
+            return server_info.get("build_version", "Unknown")
+        return None
+
+    @property
+    def extra_state_attributes(self) -> dict[str, Any]:
+        """Return additional attributes."""
+        server_info = self._find_server_info()
+        if server_info:
+            return {
+                "vbr_id": server_info.get("vbr_id"),
+                "server_name": server_info.get("name"),
+                "build_version": server_info.get("build_version"),
+                "patches": server_info.get("patches", []),
+                "database_vendor": server_info.get("database_vendor"),
+                "sql_server_edition": server_info.get("sql_server_edition"),
+                "sql_server_version": server_info.get("sql_server_version"),
+                "database_schema_version": server_info.get("database_schema_version"),
+                "database_content_version": server_info.get("database_content_version"),
+                "platform": server_info.get("platform"),
+            }
+        return {}
+
+    @property
+    def icon(self) -> str:
+        """Return the icon to use in the frontend."""
+        return "mdi:server"
 
     @property
     def device_info(self):

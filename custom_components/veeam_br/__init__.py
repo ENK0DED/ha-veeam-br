@@ -34,11 +34,14 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     )
     api_module = API_VERSIONS.get(api_version, "v1_3_rev1")
 
-    # Import API endpoint dynamically
+    # Import API endpoints dynamically
     try:
         get_all_jobs = importlib.import_module(f"veeam_br.{api_module}.api.jobs.get_all_jobs")
+        get_server_info = importlib.import_module(
+            f"veeam_br.{api_module}.api.service.get_server_info"
+        )
     except ImportError as err:
-        _LOGGER.error("Failed to import veeam_br jobs API: %s", err)
+        _LOGGER.error("Failed to import veeam_br API: %s", err)
         return False
 
     host = entry.data[CONF_HOST]
@@ -69,16 +72,22 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
                     x_api_version=api_version,
                 )
 
-            response = await hass.async_add_executor_job(_get_jobs)
+            def _get_server_info():
+                return get_server_info.sync_detailed(
+                    client=client,
+                    x_api_version=api_version,
+                )
 
-            if response.status_code != 200:
-                raise UpdateFailed(f"API returned status {response.status_code}")
+            jobs_response = await hass.async_add_executor_job(_get_jobs)
 
-            jobs_data = response.parsed or []
+            if jobs_response.status_code != 200:
+                raise UpdateFailed(f"Jobs API returned status {jobs_response.status_code}")
+
+            jobs_data = jobs_response.parsed or []
             if not isinstance(jobs_data, list):
-                return []
+                jobs_data = []
 
-            return [
+            jobs_list = [
                 {
                     "id": job.id,
                     "name": job.name or "Unknown",
@@ -90,6 +99,36 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
                 }
                 for job in jobs_data
             ]
+
+            # Fetch server information
+            server_info = None
+            try:
+                server_response = await hass.async_add_executor_job(_get_server_info)
+                if server_response.status_code == 200 and server_response.parsed:
+                    server_data = server_response.parsed
+                    server_info = {
+                        "vbr_id": server_data.vbr_id,
+                        "name": server_data.name,
+                        "build_version": server_data.build_version,
+                        "patches": server_data.patches,
+                        "database_vendor": server_data.database_vendor,
+                        "sql_server_edition": server_data.sql_server_edition,
+                        "sql_server_version": server_data.sql_server_version,
+                        "database_schema_version": server_data.database_schema_version,
+                        "database_content_version": server_data.database_content_version,
+                        "platform": (
+                            server_data.platform.value
+                            if hasattr(server_data.platform, "value")
+                            else str(server_data.platform)
+                        ),
+                    }
+            except Exception as err:
+                _LOGGER.warning("Failed to fetch server info: %s", err)
+
+            return {
+                "jobs": jobs_list,
+                "server_info": server_info,
+            }
 
         except Exception as err:
             raise UpdateFailed(f"Error communicating with API: {err}") from err
