@@ -33,6 +33,7 @@ This project is an independent, open source project. It is not affiliated with, 
 Have [HACS](https://hacs.xyz/) installed, this will allow you to update easily.
 
 * Adding ha-veeam-br to HACS can be using this button:
+
 [![image](https://my.home-assistant.io/badges/hacs_repository.svg)](https://my.home-assistant.io/redirect/hacs_repository/?owner=Cenvora&repository=ha-veeam-br&category=integration)
 
 > [!NOTE]
