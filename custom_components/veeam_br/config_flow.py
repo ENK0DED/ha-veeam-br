@@ -29,23 +29,37 @@ async def validate_input(hass: HomeAssistant, data: dict[str, Any]) -> dict[str,
     """
     # Import the veeam_br library
     try:
-        from veeam_br import VeeamClient
+        from veeam_br.v1_3_rev1 import Client
+        from veeam_br.v1_3_rev1.api.login import create_token
+        from veeam_br.v1_3_rev1.models.e_login_grant_type import ELoginGrantType
+        from veeam_br.v1_3_rev1.models.token_login_spec import TokenLoginSpec
     except ImportError as err:
         _LOGGER.error("Failed to import veeam_br library: %s", err)
         raise ConnectionError("veeam_br library not installed") from err
 
-    # Create a client instance and test the connection
-    client = VeeamClient(
-        host=data[CONF_HOST],
-        port=data[CONF_PORT],
-        username=data[CONF_USERNAME],
-        password=data[CONF_PASSWORD],
-        verify_ssl=data.get(CONF_VERIFY_SSL, DEFAULT_VERIFY_SSL),
-    )
+    # Construct base URL
+    base_url = f"https://{data[CONF_HOST]}:{data[CONF_PORT]}"
 
-    # Test connection
+    # Test connection by attempting to authenticate
     try:
-        await hass.async_add_executor_job(client.test_connection)
+
+        def _test_connection():
+            client = Client(
+                base_url=base_url, verify_ssl=data.get(CONF_VERIFY_SSL, DEFAULT_VERIFY_SSL)
+            )
+            body = TokenLoginSpec(
+                grant_type=ELoginGrantType.PASSWORD,
+                username=data[CONF_USERNAME],
+                password=data[CONF_PASSWORD],
+            )
+            with client:
+                return create_token.sync(client=client, body=body, x_api_version="1.3-rev1")
+
+        token_result = await hass.async_add_executor_job(_test_connection)
+
+        if not token_result or not token_result.access_token:
+            raise PermissionError("Authentication failed - no access token received")
+
     except PermissionError as err:
         _LOGGER.error("Authentication failed: %s", err)
         raise
