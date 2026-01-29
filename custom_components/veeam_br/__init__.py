@@ -147,31 +147,49 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
                 license_response = await hass.async_add_executor_job(_get_license)
                 if license_response.status_code == 200 and license_response.parsed:
                     license_data = license_response.parsed
+
+                    # Helper function to safely get enum value
+                    def get_enum_value(obj, attr_name, default="Unknown"):
+                        """Extract enum value, handling both enum types and UNSET."""
+                        attr = getattr(obj, attr_name, None)
+                        if attr is None:
+                            return default
+                        # Check if it's UNSET (from veeam-br library)
+                        if hasattr(attr, "__class__") and attr.__class__.__name__ == "Unset":
+                            return default
+                        # Try to get enum value
+                        if hasattr(attr, "value"):
+                            return attr.value
+                        return str(attr)
+
+                    # Helper function to safely get datetime
+                    def get_datetime_value(obj, attr_name):
+                        """Extract datetime value, handling UNSET."""
+                        attr = getattr(obj, attr_name, None)
+                        if attr is None:
+                            return None
+                        # Check if it's UNSET
+                        if hasattr(attr, "__class__") and attr.__class__.__name__ == "Unset":
+                            return None
+                        return attr
+
                     license_info = {
-                        "status": (
-                            license_data.status.value
-                            if hasattr(license_data, "status")
-                            and hasattr(license_data.status, "value")
-                            else str(getattr(license_data, "status", "Unknown"))
-                        ),
-                        "edition": (
-                            license_data.edition.value
-                            if hasattr(license_data, "edition")
-                            and hasattr(license_data.edition, "value")
-                            else str(getattr(license_data, "edition", "Unknown"))
-                        ),
-                        "type": (
-                            license_data.type.value
-                            if hasattr(license_data, "type") and hasattr(license_data.type, "value")
-                            else str(getattr(license_data, "type", "Unknown"))
-                        ),
-                        "expiration_date": getattr(license_data, "expiration_date", None),
-                        "support_expiration_date": getattr(
-                            license_data, "support_expiration_date", None
+                        "status": get_enum_value(license_data, "status"),
+                        "edition": get_enum_value(license_data, "edition"),
+                        "type": get_enum_value(
+                            license_data, "type_"
+                        ),  # Note: type_ with underscore
+                        "expiration_date": get_datetime_value(license_data, "expiration_date"),
+                        "support_expiration_date": get_datetime_value(
+                            license_data, "support_expiration_date"
                         ),
                         "support_id": getattr(license_data, "support_id", "Unknown"),
                         "auto_update_enabled": getattr(license_data, "auto_update_enabled", False),
                         "licensed_to": getattr(license_data, "licensed_to", "Unknown"),
+                        "cloud_connect": get_enum_value(license_data, "cloud_connect"),
+                        "free_agent_instance_consumption_enabled": getattr(
+                            license_data, "free_agent_instance_consumption_enabled", False
+                        ),
                     }
             except (AttributeError, KeyError, TypeError) as err:
                 _LOGGER.warning("Failed to parse license info: %s", err)
