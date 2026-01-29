@@ -107,21 +107,28 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
                 if server_response.status_code == 200 and server_response.parsed:
                     server_data = server_response.parsed
                     server_info = {
-                        "vbr_id": server_data.vbr_id,
-                        "name": server_data.name,
-                        "build_version": server_data.build_version,
-                        "patches": server_data.patches,
-                        "database_vendor": server_data.database_vendor,
-                        "sql_server_edition": server_data.sql_server_edition,
-                        "sql_server_version": server_data.sql_server_version,
-                        "database_schema_version": server_data.database_schema_version,
-                        "database_content_version": server_data.database_content_version,
+                        "vbr_id": getattr(server_data, "vbr_id", "Unknown"),
+                        "name": getattr(server_data, "name", "Unknown"),
+                        "build_version": getattr(server_data, "build_version", "Unknown"),
+                        "patches": getattr(server_data, "patches", []),
+                        "database_vendor": getattr(server_data, "database_vendor", "Unknown"),
+                        "sql_server_edition": getattr(server_data, "sql_server_edition", "Unknown"),
+                        "sql_server_version": getattr(server_data, "sql_server_version", "Unknown"),
+                        "database_schema_version": getattr(
+                            server_data, "database_schema_version", "Unknown"
+                        ),
+                        "database_content_version": getattr(
+                            server_data, "database_content_version", "Unknown"
+                        ),
                         "platform": (
                             server_data.platform.value
-                            if hasattr(server_data.platform, "value")
-                            else str(server_data.platform)
+                            if hasattr(server_data, "platform")
+                            and hasattr(server_data.platform, "value")
+                            else str(getattr(server_data, "platform", "Unknown"))
                         ),
                     }
+            except (AttributeError, KeyError, TypeError) as err:
+                _LOGGER.warning("Failed to parse server info: %s", err)
             except Exception as err:
                 _LOGGER.warning("Failed to fetch server info: %s", err)
 

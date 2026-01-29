@@ -150,7 +150,6 @@ class VeeamServerInfoSensor(CoordinatorEntity, SensorEntity):
             return {
                 "vbr_id": server_info.get("vbr_id"),
                 "server_name": server_info.get("name"),
-                "build_version": server_info.get("build_version"),
                 "patches": server_info.get("patches", []),
                 "database_vendor": server_info.get("database_vendor"),
                 "sql_server_edition": server_info.get("sql_server_edition"),
