@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from datetime import timedelta
+import importlib
 import logging
 
 from homeassistant.config_entries import ConfigEntry
@@ -10,7 +11,15 @@ from homeassistant.const import CONF_HOST, CONF_PASSWORD, CONF_PORT, CONF_USERNA
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers.update_coordinator import DataUpdateCoordinator, UpdateFailed
 
-from .const import CONF_VERIFY_SSL, DEFAULT_VERIFY_SSL, DOMAIN, UPDATE_INTERVAL
+from .const import (
+    API_VERSIONS,
+    CONF_API_VERSION,
+    CONF_VERIFY_SSL,
+    DEFAULT_API_VERSION,
+    DEFAULT_VERIFY_SSL,
+    DOMAIN,
+    UPDATE_INTERVAL,
+)
 from .token_manager import VeeamTokenManager
 
 _LOGGER = logging.getLogger(__name__)
@@ -20,11 +29,16 @@ PLATFORMS: list[Platform] = [Platform.SENSOR]
 
 async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     """Set up Veeam Backup & Replication from a config entry."""
-    # Import the veeam_br library
+    # Get API version from config or use default
+    api_version = entry.data.get(CONF_API_VERSION, DEFAULT_API_VERSION)
+    api_module = API_VERSIONS.get(api_version, "v1_3_rev1")
+    
+    # Import the veeam_br library dynamically based on API version
     try:
-        from veeam_br.v1_3_rev1.api.jobs import get_all_jobs
+        jobs_module = importlib.import_module(f"veeam_br.{api_module}.api.jobs")
+        get_all_jobs = jobs_module.get_all_jobs
     except ImportError as err:
-        _LOGGER.error("Failed to import veeam_br library: %s", err)
+        _LOGGER.error("Failed to import veeam_br library for API version %s: %s", api_version, err)
         return False
 
     # Construct base URL
@@ -38,6 +52,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
         username=entry.data[CONF_USERNAME],
         password=entry.data[CONF_PASSWORD],
         verify_ssl=entry.data.get(CONF_VERIFY_SSL, DEFAULT_VERIFY_SSL),
+        api_version=api_version,
     )
 
     # Create update coordinator
@@ -55,7 +70,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
 
             # Get backup jobs and their status using the veeam-br library
             def _get_jobs():
-                return get_all_jobs.sync(client=client, x_api_version="1.3-rev1")
+                return get_all_jobs.sync(client=client, x_api_version=api_version)
 
             jobs_response = await hass.async_add_executor_job(_get_jobs)
 

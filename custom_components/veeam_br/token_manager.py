@@ -3,8 +3,11 @@
 from __future__ import annotations
 
 from datetime import datetime, timedelta
+import importlib
 import logging
 from typing import Any
+
+from .const import API_VERSIONS
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -100,10 +103,18 @@ class VeeamTokenManager:
             bool: True if successful
         """
         try:
-            from veeam_br.v1_3_rev1 import Client
-            from veeam_br.v1_3_rev1.api.login import create_token
-            from veeam_br.v1_3_rev1.models.e_login_grant_type import ELoginGrantType
-            from veeam_br.v1_3_rev1.models.token_login_spec import TokenLoginSpec
+            api_module = API_VERSIONS.get(self._api_version, "v1_3_rev1")
+            
+            # Dynamic imports based on API version
+            client_module = importlib.import_module(f"veeam_br.{api_module}")
+            login_module = importlib.import_module(f"veeam_br.{api_module}.api.login")
+            models_module = importlib.import_module(f"veeam_br.{api_module}.models.e_login_grant_type")
+            token_spec_module = importlib.import_module(f"veeam_br.{api_module}.models.token_login_spec")
+            
+            Client = client_module.Client
+            create_token = login_module.create_token
+            ELoginGrantType = models_module.ELoginGrantType
+            TokenLoginSpec = token_spec_module.TokenLoginSpec
 
             def _do_refresh():
                 client = Client(base_url=self._base_url, verify_ssl=self._verify_ssl)
@@ -147,10 +158,18 @@ class VeeamTokenManager:
             bool: True if successful
         """
         try:
-            from veeam_br.v1_3_rev1 import Client
-            from veeam_br.v1_3_rev1.api.login import create_token
-            from veeam_br.v1_3_rev1.models.e_login_grant_type import ELoginGrantType
-            from veeam_br.v1_3_rev1.models.token_login_spec import TokenLoginSpec
+            api_module = API_VERSIONS.get(self._api_version, "v1_3_rev1")
+            
+            # Dynamic imports based on API version
+            client_module = importlib.import_module(f"veeam_br.{api_module}")
+            login_module = importlib.import_module(f"veeam_br.{api_module}.api.login")
+            models_module = importlib.import_module(f"veeam_br.{api_module}.models.e_login_grant_type")
+            token_spec_module = importlib.import_module(f"veeam_br.{api_module}.models.token_login_spec")
+            
+            Client = client_module.Client
+            create_token = login_module.create_token
+            ELoginGrantType = models_module.ELoginGrantType
+            TokenLoginSpec = token_spec_module.TokenLoginSpec
 
             def _do_auth():
                 client = Client(base_url=self._base_url, verify_ssl=self._verify_ssl)
@@ -185,7 +204,9 @@ class VeeamTokenManager:
 
     def _update_authenticated_client(self):
         """Update the authenticated client with the new token."""
-        from veeam_br.v1_3_rev1 import AuthenticatedClient
+        api_module = API_VERSIONS.get(self._api_version, "v1_3_rev1")
+        client_module = importlib.import_module(f"veeam_br.{api_module}")
+        AuthenticatedClient = client_module.AuthenticatedClient
 
         self._authenticated_client = AuthenticatedClient(
             base_url=self._base_url,
