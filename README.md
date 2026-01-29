@@ -28,9 +28,6 @@ This project is an independent, open source project. It is not affiliated with, 
 - Veeam Backup & Replication server with REST API enabled (Community Edition not supported)
 
 ## Installation
-
-> **Note**: The required `veeam-br` Python library is automatically installed by Home Assistant when you add this integration. No manual package installation is needed.
-
 ### HACS (Recommended)
 
 Have [HACS](https://hacs.xyz/) installed, this will allow you to update easily.
