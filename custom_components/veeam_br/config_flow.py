@@ -41,7 +41,9 @@ async def validate_input(hass: HomeAssistant, data: dict[str, Any]) -> dict[str,
         create_token_module = importlib.import_module(
             f"veeam_br.{api_module}.api.login.create_token"
         )
-        models_module = importlib.import_module(f"veeam_br.{api_module}.models.e_login_grant_type")
+        models_module = importlib.import_module(
+            f"veeam_br.{api_module}.models.e_login_grant_type"
+        )
         token_spec_module = importlib.import_module(
             f"veeam_br.{api_module}.models.token_login_spec"
         )
