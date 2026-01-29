@@ -98,6 +98,10 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
 
             response = await hass.async_add_executor_job(_get_jobs)
 
+            # Check response is valid
+            if response is None:
+                raise UpdateFailed("API returned None response")
+
             # Check response status
             if response.status_code != 200:
                 raise UpdateFailed(f"API returned status {response.status_code}")
@@ -105,9 +109,8 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
             # Parse the JSON response directly instead of using JobsResult.from_dict()
             # which tries to import non-existent model files
             try:
-                response_data = response.content.decode("utf-8")
-                data = json.loads(response_data)
-            except (ValueError, json.JSONDecodeError) as err:
+                data = json.loads(response.text)
+            except json.JSONDecodeError as err:
                 raise UpdateFailed(f"Failed to parse API response: {err}") from err
 
             # Extract jobs from the response
