@@ -144,7 +144,6 @@ class VeeamJobBaseSensor(CoordinatorEntity, SensorEntity):
             "name": f"Job - {self._job_name}",
             "manufacturer": "Veeam",
             "model": "Backup Job",
-            "via_device": (DOMAIN, self._config_entry.entry_id),
         }
 
 
@@ -288,7 +287,6 @@ class VeeamServerBaseSensor(CoordinatorEntity, SensorEntity):
             "name": f"Veeam Server - {server_name}",
             "manufacturer": "Veeam",
             "model": "Backup & Replication Server",
-            "via_device": (DOMAIN, self._config_entry.entry_id),
         }
 
 
@@ -391,7 +389,6 @@ class VeeamLicenseBaseSensor(CoordinatorEntity, SensorEntity):
             "name": "Veeam License",
             "manufacturer": "Veeam",
             "model": "License",
-            "via_device": (DOMAIN, self._config_entry.entry_id),
         }
 
 
@@ -543,7 +540,6 @@ class VeeamRepositoryBaseSensor(CoordinatorEntity, SensorEntity):
             "name": f"Repository - {self._repo_name}",
             "manufacturer": "Veeam",
             "model": "Backup Repository",
-            "via_device": (DOMAIN, self._config_entry.entry_id),
         }
 
 
