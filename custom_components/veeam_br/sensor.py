@@ -55,6 +55,11 @@ async def async_setup_entry(
 
             new_entities.append(VeeamRepositorySensor(coordinator, entry, repository))
             added_repository_ids.add(repo_id)
+            _LOGGER.debug(
+                "Adding repository sensor for: %s (id: %s)",
+                repository.get("name"),
+                repo_id,
+            )
 
         # ---- SERVER SENSOR (once) ----
         if not server_added and coordinator.data.get("server_info"):

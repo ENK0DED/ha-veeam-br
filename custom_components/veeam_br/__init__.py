@@ -241,12 +241,37 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
                     repositories_result = repositories_response.parsed
                     repositories_data = repositories_result.data if repositories_result else []
 
+                    _LOGGER.debug("Fetched %d repositories from API", len(repositories_data))
+
                     # Helper to safely get UUID as string
                     def get_uuid_value(uuid_val):
                         """Extract UUID value."""
                         if uuid_val is None or uuid_val is UNSET:
                             return None
                         return str(uuid_val)
+
+                    # Helper to serialize nested objects to dict
+                    def serialize_value(value):
+                        """Recursively serialize values to JSON-compatible types."""
+                        if value is None or value is UNSET:
+                            return None
+                        if isinstance(value, (str, int, float, bool)):
+                            return value
+                        if isinstance(value, dict):
+                            return {k: serialize_value(v) for k, v in value.items()}
+                        if isinstance(value, (list, tuple)):
+                            return [serialize_value(item) for item in value]
+                        # Handle objects with to_dict method
+                        if hasattr(value, "to_dict"):
+                            return value.to_dict()
+                        # Handle enum types
+                        if hasattr(value, "value"):
+                            return value.value
+                        # Convert UUID to string
+                        try:
+                            return str(value)
+                        except Exception:
+                            return None
 
                     for repo in repositories_data:
                         try:
@@ -262,16 +287,30 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
 
                             # Add all additional properties from the API response
                             if hasattr(repo, "additional_properties"):
-                                repo_dict.update(repo.additional_properties)
+                                for key, value in repo.additional_properties.items():
+                                    repo_dict[key] = serialize_value(value)
 
                             repositories_list.append(repo_dict)
+                            _LOGGER.debug(
+                                "Successfully parsed repository: %s (type: %s)",
+                                repo_dict.get("name"),
+                                repo_dict.get("type"),
+                            )
                         except (AttributeError, TypeError) as err:
-                            _LOGGER.warning("Failed to parse repository: %s", err)
+                            _LOGGER.warning(
+                                "Failed to parse repository %s: %s",
+                                getattr(repo, "name", "Unknown"),
+                                err,
+                            )
                             continue
             except (AttributeError, KeyError, TypeError) as err:
                 _LOGGER.warning("Failed to parse repositories: %s", err)
             except Exception as err:
                 _LOGGER.warning("Failed to fetch repositories: %s", err)
+
+            _LOGGER.debug(
+                "Total repositories added to coordinator data: %d", len(repositories_list)
+            )
 
             return {
                 "jobs": jobs_list,
