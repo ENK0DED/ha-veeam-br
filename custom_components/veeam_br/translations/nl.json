@@ -3,7 +3,7 @@
     "step": {
       "user": {
         "title": "Verbinden met Veeam Backup & Replication",
-        "description": "Voer de gegevens van uw Veeam Backup & Replication server in.",
+        "description": "Voer de gegevens van uw Veeam Backup & Replication-server in.",
         "data": {
           "host": "Host",
           "port": "Poort",
@@ -15,28 +15,28 @@
       }
     },
     "error": {
-      "cannot_connect": "Kan geen verbinding maken met Veeam server",
+      "cannot_connect": "Kan geen verbinding maken met de Veeam-server",
       "invalid_auth": "Ongeldige authenticatiegegevens",
-      "unknown": "Onverwachte fout opgetreden"
+      "unknown": "Er is een onverwachte fout opgetreden"
     },
     "abort": {
-      "already_configured": "Deze Veeam server is al geconfigureerd"
+      "already_configured": "Deze Veeam-server is al geconfigureerd"
     }
   },
   "options": {
     "step": {
       "init": {
-        "title": "Veeam Backup & Replication opties",
-        "description": "Configureer de instellingen voor de Veeam Backup & Replication integratie.",
+        "title": "Veeam Backup & Replication-opties",
+        "description": "Configureer de instellingen voor de Veeam Backup & Replication-integratie.",
         "data": {
           "api_version": "API-versie"
         }
       }
     },
     "error": {
-      "cannot_connect": "Kan geen verbinding maken met Veeam server",
+      "cannot_connect": "Kan geen verbinding maken met de Veeam-server",
       "invalid_auth": "Ongeldige authenticatiegegevens",
-      "unknown": "Onverwachte fout opgetreden"
+      "unknown": "Er is een onverwachte fout opgetreden"
     }
   }
 }
