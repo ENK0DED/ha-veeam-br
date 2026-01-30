@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-import importlib
 import logging
 
 from homeassistant.components.button import ButtonEntity
@@ -12,7 +11,7 @@ from homeassistant.core import HomeAssistant, callback
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 from homeassistant.helpers.update_coordinator import CoordinatorEntity
 
-from .const import API_VERSIONS, CONF_API_VERSION, DEFAULT_API_VERSION, DOMAIN
+from .const import DOMAIN
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -96,32 +95,16 @@ class VeeamRepositoryRescanButton(CoordinatorEntity, ButtonEntity):
     async def async_press(self) -> None:
         """Handle the button press to trigger a repository rescan.
 
-        This method calls the Veeam API to rescan the repository, which updates
-        the repository's metadata and state. After a successful rescan request,
-        it triggers a coordinator refresh to update all repository sensors with
-        the latest data from the API.
+        This method calls the Veeam API to rescan the repository using the
+        POST /api/v1/backupInfrastructure/repositories/rescan endpoint with
+        the repository ID in the request body. After a successful rescan request,
+        it triggers a coordinator refresh to update all repository sensors.
 
         Side effects:
-            - Calls the Veeam API rescan_repository endpoint
+            - Calls the Veeam API repositories rescan endpoint
             - Triggers coordinator.async_request_refresh() on success
         """
         try:
-            # Get the API version
-            api_version = self._config_entry.options.get(
-                CONF_API_VERSION,
-                self._config_entry.data.get(CONF_API_VERSION, DEFAULT_API_VERSION),
-            )
-            api_module = API_VERSIONS.get(api_version, "v1_3_rev1")
-
-            # Import the rescan endpoint dynamically
-            try:
-                rescan_repository = importlib.import_module(
-                    f"veeam_br.{api_module}.api.repositories.rescan_repository"
-                )
-            except ImportError:
-                _LOGGER.error("Rescan repository API not available in version %s", api_version)
-                return
-
             # Ensure we have a valid token
             if not await self._token_manager.ensure_valid_token(self.hass):
                 _LOGGER.error("Failed to obtain valid access token for repository rescan")
@@ -132,13 +115,25 @@ class VeeamRepositoryRescanButton(CoordinatorEntity, ButtonEntity):
                 _LOGGER.error("No authenticated client available for repository rescan")
                 return
 
-            # Trigger the rescan
+            # Trigger the rescan using raw HTTP client
             def _rescan():
-                return rescan_repository.sync_detailed(
-                    client=client,
-                    id=self._repo_id,
-                    x_api_version=api_version,
-                )
+                import httpx
+
+                # Use the authenticated client's properties
+                headers = {
+                    "Authorization": f"Bearer {client.token}",
+                    "Content-Type": "application/json",
+                    "x-api-version": "1.3-rev1",
+                }
+
+                # POST request body with repository ID
+                json_body = {"repositoryIds": [self._repo_id]}
+
+                url = f"{client.base_url}/api/v1/backupInfrastructure/repositories/rescan"
+
+                with httpx.Client(verify=client.verify_ssl, timeout=30.0) as http_client:
+                    response = http_client.post(url, json=json_body, headers=headers)
+                    return response
 
             response = await self.hass.async_add_executor_job(_rescan)
 
@@ -148,9 +143,10 @@ class VeeamRepositoryRescanButton(CoordinatorEntity, ButtonEntity):
                 await self.coordinator.async_request_refresh()
             else:
                 _LOGGER.error(
-                    "Failed to rescan repository %s: HTTP %s",
+                    "Failed to rescan repository %s: HTTP %s - %s",
                     self._repo_name,
                     response.status_code,
+                    response.text,
                 )
 
         except Exception as err:
