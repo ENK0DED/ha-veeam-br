@@ -134,13 +134,22 @@ class VeeamRepositoryRescanButton(CoordinatorEntity, ButtonEntity):
 
             # Trigger the rescan using veeam-br library
             def _rescan():
-                # The rescan_repositories endpoint accepts a body with repositoryIds
-                # Create the body as a simple dict - the library will handle serialization
-                json_body = {"repositoryIds": [self._repo_id]}
+                # The rescan_repositories endpoint POST /api/v1/backupInfrastructure/repositories/rescan
+                # Import the body model for the rescan request
+                try:
+                    models_module = importlib.import_module(
+                        f"veeam_br.{api_module}.models.rescan_repositories_request_model"
+                    )
+                    RescanModel = models_module.RescanRepositoriesRequestModel
+                    body = RescanModel(repository_ids=[self._repo_id])
+                except (ImportError, AttributeError):
+                    # Fallback: try passing as dict if model not found
+                    _LOGGER.warning("RescanRepositoriesRequestModel not found, using dict body")
+                    body = {"repositoryIds": [self._repo_id]}
 
                 return rescan_repositories.sync_detailed(
                     client=client,
-                    json_body=json_body,
+                    body=body,
                     x_api_version=api_version,
                 )
 

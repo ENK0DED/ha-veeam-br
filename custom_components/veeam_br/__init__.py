@@ -355,23 +355,28 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
                                     # Extract immutability enabled status
                                     is_enabled = getattr(immutability, "is_enabled", None)
                                     repo_dict["is_immutable"] = is_enabled
+                                    _LOGGER.debug(
+                                        "Repository %s immutability: is_enabled=%s",
+                                        repo_dict.get("name"),
+                                        is_enabled,
+                                    )
                                     # Extract immutability days count if enabled
                                     if is_enabled:
-                                        repo_dict["immutability_days"] = getattr(
-                                            immutability, "days_count", None
+                                        days_count = getattr(immutability, "days_count", None)
+                                        repo_dict["immutability_days"] = days_count
+                                        _LOGGER.debug(
+                                            "Repository %s immutability_days=%s",
+                                            repo_dict.get("name"),
+                                            days_count,
                                         )
 
                             # Accessible - use is_online from state as a proxy
                             repo_dict["is_accessible"] = repo_dict.get("is_online")
 
                             # Add all additional properties from the API response
-                            # This will capture any other fields like mounted
                             if hasattr(repo, "additional_properties"):
                                 for key, value in repo.additional_properties.items():
                                     repo_dict[key] = serialize_value(value)
-                                    # Map additional properties to expected sensor names
-                                    if key in ("isMounted", "is_mounted", "mounted"):
-                                        repo_dict["is_mounted"] = serialize_value(value)
 
                             repositories_list.append(repo_dict)
                             _LOGGER.debug(

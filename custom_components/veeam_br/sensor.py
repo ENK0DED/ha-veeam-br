@@ -76,7 +76,6 @@ async def async_setup_entry(
                     VeeamRepositoryOutOfDateSensor(coordinator, entry, repository),
                     VeeamRepositoryImmutableSensor(coordinator, entry, repository),
                     VeeamRepositoryAccessibleSensor(coordinator, entry, repository),
-                    VeeamRepositoryMountedSensor(coordinator, entry, repository),
                     VeeamRepositoryCapacityWarningSensor(coordinator, entry, repository),
                     VeeamRepositoryCapacityCriticalSensor(coordinator, entry, repository),
                 ]
@@ -1047,28 +1046,6 @@ class VeeamRepositoryAccessibleSensor(VeeamRepositoryBinarySensorBase):
         if not repo:
             return None
         return bool(repo.get("is_accessible"))
-
-
-class VeeamRepositoryMountedSensor(VeeamRepositoryBinarySensorBase):
-    """Binary sensor for Veeam Repository Mounted status."""
-
-    _attr_entity_category = EntityCategory.DIAGNOSTIC
-
-    def __init__(self, coordinator, config_entry, repository_data):
-        super().__init__(coordinator, config_entry, repository_data)
-        self._attr_unique_id = f"{config_entry.entry_id}_repository_{self._repo_id}_mounted"
-        self._attr_name = "Mounted"
-
-    @property
-    def is_on(self) -> bool | None:
-        repo = self._repository()
-        if not repo:
-            return None
-        return bool(repo.get("is_mounted"))
-
-    @property
-    def icon(self) -> str:
-        return "mdi:folder-open" if self.is_on else "mdi:folder"
 
 
 class VeeamRepositoryCapacityWarningSensor(VeeamRepositoryBinarySensorBase):
