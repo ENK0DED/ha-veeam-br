@@ -925,13 +925,18 @@ class VeeamRepositoryBinarySensorBase(VeeamRepositoryMixin, CoordinatorEntity, B
         VeeamRepositoryMixin.__init__(self, coordinator, config_entry, repository_data)
 
     def _get_free_space_percent(self) -> float | None:
-        """Calculate free space percentage for the repository."""
+        """Calculate free space percentage for the repository.
+
+        Free space is calculated as (capacity - used) / capacity * 100
+        to get the actual available space percentage.
+        """
         repo = self._repository()
         if not repo:
             return None
         capacity = repo.get("capacity_gb")
-        free = repo.get("free_gb")
-        if capacity and capacity > 0 and free is not None:
+        used = repo.get("used_space_gb")
+        if capacity and capacity > 0 and used is not None:
+            free = capacity - used
             return (free / capacity) * 100
         return None
 
