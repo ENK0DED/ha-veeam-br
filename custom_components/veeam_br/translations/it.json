@@ -17,7 +17,7 @@
     "error": {
       "cannot_connect": "Connessione al server Veeam non riuscita",
       "invalid_auth": "Credenziali di autenticazione non valide",
-      "unknown": "Errore imprevisto"
+      "unknown": "Si è verificato un errore imprevisto"
     },
     "abort": {
       "already_configured": "Questo server Veeam è già configurato"
@@ -36,7 +36,7 @@
     "error": {
       "cannot_connect": "Connessione al server Veeam non riuscita",
       "invalid_auth": "Credenziali di autenticazione non valide",
-      "unknown": "Errore imprevisto"
+      "unknown": "Si è verificato un errore imprevisto"
     }
   }
 }
