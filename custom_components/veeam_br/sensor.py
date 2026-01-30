@@ -924,6 +924,17 @@ class VeeamRepositoryBinarySensorBase(VeeamRepositoryMixin, CoordinatorEntity, B
         CoordinatorEntity.__init__(self, coordinator)
         VeeamRepositoryMixin.__init__(self, coordinator, config_entry, repository_data)
 
+    def _get_free_space_percent(self) -> float | None:
+        """Calculate free space percentage for the repository."""
+        repo = self._repository()
+        if not repo:
+            return None
+        capacity = repo.get("capacity_gb")
+        free = repo.get("free_gb")
+        if capacity and capacity > 0 and free is not None:
+            return (free / capacity) * 100
+        return None
+
 
 class VeeamRepositoryOnlineStatusSensor(VeeamRepositoryBinarySensorBase):
     """Binary sensor for Veeam Repository Online Status."""
@@ -1084,15 +1095,10 @@ class VeeamRepositoryCapacityWarningSensor(VeeamRepositoryBinarySensorBase):
 
     @property
     def is_on(self) -> bool | None:
-        repo = self._repository()
-        if not repo:
+        free_percent = self._get_free_space_percent()
+        if free_percent is None:
             return None
-        capacity = repo.get("capacity_gb")
-        free = repo.get("free_gb")
-        if capacity and capacity > 0 and free is not None:
-            free_percent = (free / capacity) * 100
-            return free_percent < 15
-        return None
+        return free_percent < 15
 
     @property
     def icon(self) -> str:
@@ -1113,15 +1119,10 @@ class VeeamRepositoryCapacityCriticalSensor(VeeamRepositoryBinarySensorBase):
 
     @property
     def is_on(self) -> bool | None:
-        repo = self._repository()
-        if not repo:
+        free_percent = self._get_free_space_percent()
+        if free_percent is None:
             return None
-        capacity = repo.get("capacity_gb")
-        free = repo.get("free_gb")
-        if capacity and capacity > 0 and free is not None:
-            free_percent = (free / capacity) * 100
-            return free_percent < 5
-        return None
+        return free_percent < 5
 
     @property
     def icon(self) -> str:

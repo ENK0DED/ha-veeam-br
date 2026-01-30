@@ -94,7 +94,17 @@ class VeeamRepositoryRescanButton(CoordinatorEntity, ButtonEntity):
         return "mdi:magnify-scan"
 
     async def async_press(self) -> None:
-        """Handle the button press - trigger repository rescan."""
+        """Handle the button press to trigger a repository rescan.
+
+        This method calls the Veeam API to rescan the repository, which updates
+        the repository's metadata and state. After a successful rescan request,
+        it triggers a coordinator refresh to update all repository sensors with
+        the latest data from the API.
+
+        Side effects:
+            - Calls the Veeam API rescan_repository endpoint
+            - Triggers coordinator.async_request_refresh() on success
+        """
         try:
             # Get the API version
             api_version = self._config_entry.options.get(
