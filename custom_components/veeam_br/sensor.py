@@ -602,6 +602,8 @@ class VeeamLicenseAutoUpdateSensor(VeeamLicenseBinarySensorBase):
 
 
 class VeeamLicenseCloudConnectSensor(VeeamLicenseBinarySensorBase):
+    """Binary sensor for Veeam License Cloud Connect."""
+
     _attr_device_class = BinarySensorDeviceClass.CONNECTIVITY
     _attr_entity_category = EntityCategory.DIAGNOSTIC
 
@@ -839,6 +841,8 @@ class VeeamRepositoryBinarySensorBase(CoordinatorEntity, BinarySensorEntity):
 
 
 class VeeamRepositoryOnlineStatusSensor(VeeamRepositoryBinarySensorBase):
+    """Binary sensor for Veeam Repository Online Status."""
+
     _attr_device_class = BinarySensorDeviceClass.CONNECTIVITY
     _attr_entity_category = EntityCategory.DIAGNOSTIC
 
@@ -856,6 +860,8 @@ class VeeamRepositoryOnlineStatusSensor(VeeamRepositoryBinarySensorBase):
 
 
 class VeeamRepositoryOutOfDateSensor(VeeamRepositoryBinarySensorBase):
+    """Binary sensor for Veeam Repository Out of Date Status."""
+
     _attr_device_class = BinarySensorDeviceClass.PROBLEM
     _attr_entity_category = EntityCategory.DIAGNOSTIC
 
