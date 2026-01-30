@@ -65,19 +65,27 @@ Have [HACS](https://hacs.xyz/) installed, this will allow you to update easily.
 
 ## Entities
 
-The integration creates sensor entities for each backup job:
+The integration creates devices for each monitored object (jobs, repositories, server, license), with multiple sensor entities per device:
 
-### Sensor Entity
+### Job Devices
 
-- **Entity ID**: `sensor.veeam_<job_name>`
-- **State**: Current job status (`success`, `running`, `failed`, `warning`, `unknown`)
-- **Attributes**:
-  - `job_id`: Unique job identifier
-  - `job_name`: Display name of the job
-  - `job_type`: Type of backup job
-  - `last_run`: Timestamp of the last job execution
-  - `next_run`: Timestamp of the next scheduled run
-  - `last_result`: Result of the last job execution
+Each backup job creates a device with the following sensors:
+
+- **Status Sensor**: `sensor.<job_name>_status`
+  - State: Current job status (`success`, `running`, `failed`, `warning`, `unknown`)
+- **Type Sensor**: `sensor.<job_name>_type`
+  - State: Type of backup job
+- **Last Run Sensor**: `sensor.<job_name>_last_run`
+  - State: Timestamp of the last job execution
+- **Next Run Sensor**: `sensor.<job_name>_next_run`
+  - State: Timestamp of the next scheduled run
+
+### Other Devices
+
+The integration also creates devices for:
+- **Repositories**: Each repository device has sensors for type, capacity, free space, used space, online status, etc.
+- **Server**: Server device has sensors for build version, platform, database info, etc.
+- **License**: License device has sensors for status, edition, expiration dates, etc.
 
 ## Example Automations
 
@@ -88,13 +96,13 @@ automation:
   - alias: "Notify on Veeam Backup Failure"
     trigger:
       - platform: state
-        entity_id: sensor.veeam_my_backup_job
+        entity_id: sensor.my_backup_job_status
         to: "failed"
     action:
       - service: notify.notify
         data:
           title: "Veeam Backup Failed"
-          message: "Backup job {{ trigger.to_state.attributes.job_name }} has failed!"
+          message: "Backup job {{ trigger.to_state.name }} has failed!"
 ```
 
 ### Daily Backup Status Report
@@ -110,8 +118,11 @@ automation:
         data:
           title: "Veeam Backup Status"
           message: >
-            {% for state in states.sensor | selectattr('entity_id', 'search', 'veeam_') %}
-              {{ state.attributes.job_name }}: {{ state.state }}
+            {% set status_sensors = states.sensor 
+               | selectattr('entity_id', 'search', '_status$') 
+               | list %}
+            {% for sensor in status_sensors %}
+              {{ sensor.name | replace(' Status', '') }}: {{ sensor.state }}
             {% endfor %}
 ```
 
