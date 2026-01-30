@@ -5,8 +5,8 @@ from __future__ import annotations
 import logging
 from typing import Any
 
-from homeassistant.components.binary_sensor import BinarySensorEntity, BinarySensorDeviceClass
-from homeassistant.components.sensor import SensorEntity, SensorDeviceClass
+from homeassistant.components.binary_sensor import BinarySensorDeviceClass, BinarySensorEntity
+from homeassistant.components.sensor import SensorDeviceClass, SensorEntity
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.const import EntityCategory
 from homeassistant.core import HomeAssistant, callback
@@ -123,6 +123,62 @@ async def async_setup_entry(
 
     # Future updates
     coordinator.async_add_listener(_sync_entities)
+
+
+# ===========================
+# MIXINS (shared logic for base classes)
+# ===========================
+
+
+class VeeamLicenseMixin:
+    """Mixin providing shared license-related functionality."""
+
+    def __init__(self, coordinator, config_entry):
+        """Initialize the mixin."""
+        self._config_entry = config_entry
+
+    def _license_info(self) -> dict[str, Any] | None:
+        """Get license info from coordinator data."""
+        return self.coordinator.data.get("license_info") if self.coordinator.data else None
+
+    @property
+    def device_info(self):
+        """Return device info for the Veeam license."""
+        return {
+            "identifiers": {(DOMAIN, f"license_{self._config_entry.entry_id}")},
+            "name": "Veeam License",
+            "manufacturer": "Veeam",
+            "model": "License",
+        }
+
+
+class VeeamRepositoryMixin:
+    """Mixin providing shared repository-related functionality."""
+
+    def __init__(self, coordinator, config_entry, repository_data):
+        """Initialize the mixin."""
+        self._config_entry = config_entry
+        self._repo_id = repository_data.get("id")
+        self._repo_name = repository_data.get("name", "Unknown Repository")
+
+    def _repository(self) -> dict[str, Any] | None:
+        """Get repository data from coordinator."""
+        if not self.coordinator.data:
+            return None
+        for repo in self.coordinator.data.get("repositories", []):
+            if repo.get("id") == self._repo_id:
+                return repo
+        return None
+
+    @property
+    def device_info(self):
+        """Return device info for this repository."""
+        return {
+            "identifiers": {(DOMAIN, f"repository_{self._repo_id}")},
+            "name": f"{self._repo_name}",
+            "manufacturer": "Veeam",
+            "model": "Backup Repository",
+        }
 
 
 # ===========================
@@ -399,27 +455,14 @@ class VeeamServerSQLVersionSensor(VeeamServerBaseSensor):
 # ===========================
 
 
-class VeeamLicenseBaseSensor(CoordinatorEntity, SensorEntity):
+class VeeamLicenseBaseSensor(VeeamLicenseMixin, CoordinatorEntity, SensorEntity):
     """Base class for Veeam License sensors."""
 
     _attr_has_entity_name = True
 
     def __init__(self, coordinator, config_entry):
-        super().__init__(coordinator)
-        self._config_entry = config_entry
-
-    def _license_info(self) -> dict[str, Any] | None:
-        return self.coordinator.data.get("license_info") if self.coordinator.data else None
-
-    @property
-    def device_info(self):
-        """Return device info for the Veeam license."""
-        return {
-            "identifiers": {(DOMAIN, f"license_{self._config_entry.entry_id}")},
-            "name": "Veeam License",
-            "manufacturer": "Veeam",
-            "model": "License",
-        }
+        CoordinatorEntity.__init__(self, coordinator)
+        VeeamLicenseMixin.__init__(self, coordinator, config_entry)
 
 
 class VeeamLicenseStatusSensor(VeeamLicenseBaseSensor):
@@ -559,7 +602,17 @@ class VeeamLicenseSupportIDSensor(VeeamLicenseBaseSensor):
         return "mdi:identifier"
 
 
-class VeeamLicenseAutoUpdateSensor(VeeamLicenseBaseSensor, BinarySensorEntity):
+class VeeamLicenseBinarySensorBase(VeeamLicenseMixin, CoordinatorEntity, BinarySensorEntity):
+    """Base class for Veeam License binary sensors."""
+
+    _attr_has_entity_name = True
+
+    def __init__(self, coordinator, config_entry):
+        CoordinatorEntity.__init__(self, coordinator)
+        VeeamLicenseMixin.__init__(self, coordinator, config_entry)
+
+
+class VeeamLicenseAutoUpdateSensor(VeeamLicenseBinarySensorBase):
     """Binary sensor for Veeam License Auto Update."""
 
     _attr_device_class = BinarySensorDeviceClass.UPDATE
@@ -578,7 +631,9 @@ class VeeamLicenseAutoUpdateSensor(VeeamLicenseBaseSensor, BinarySensorEntity):
         return bool(license_info.get("auto_update_enabled"))
 
 
-class VeeamLicenseCloudConnectSensor(VeeamLicenseBaseSensor, BinarySensorEntity):
+class VeeamLicenseCloudConnectSensor(VeeamLicenseBinarySensorBase):
+    """Binary sensor for Veeam License Cloud Connect."""
+
     _attr_device_class = BinarySensorDeviceClass.CONNECTIVITY
     _attr_entity_category = EntityCategory.DIAGNOSTIC
 
@@ -592,7 +647,11 @@ class VeeamLicenseCloudConnectSensor(VeeamLicenseBaseSensor, BinarySensorEntity)
         license_info = self._license_info()
         if not license_info:
             return None
-        return bool(license_info.get("cloud_connect"))
+        cloud_connect = license_info.get("cloud_connect")
+        if cloud_connect is None:
+            return None
+        # cloud_connect is an enum string (e.g., "Enabled", "Disabled"), not a boolean
+        return str(cloud_connect).lower() == "enabled"
 
 
 # ===========================
@@ -600,34 +659,14 @@ class VeeamLicenseCloudConnectSensor(VeeamLicenseBaseSensor, BinarySensorEntity)
 # ===========================
 
 
-class VeeamRepositoryBaseSensor(CoordinatorEntity, SensorEntity):
+class VeeamRepositoryBaseSensor(VeeamRepositoryMixin, CoordinatorEntity, SensorEntity):
     """Base class for Veeam Repository sensors."""
 
     _attr_has_entity_name = True
 
     def __init__(self, coordinator, config_entry, repository_data):
-        super().__init__(coordinator)
-        self._config_entry = config_entry
-        self._repo_id = repository_data.get("id")
-        self._repo_name = repository_data.get("name", "Unknown Repository")
-
-    def _repository(self) -> dict[str, Any] | None:
-        if not self.coordinator.data:
-            return None
-        for repo in self.coordinator.data.get("repositories", []):
-            if repo.get("id") == self._repo_id:
-                return repo
-        return None
-
-    @property
-    def device_info(self):
-        """Return device info for this repository."""
-        return {
-            "identifiers": {(DOMAIN, f"repository_{self._repo_id}")},
-            "name": f"{self._repo_name}",
-            "manufacturer": "Veeam",
-            "model": "Backup Repository",
-        }
+        CoordinatorEntity.__init__(self, coordinator)
+        VeeamRepositoryMixin.__init__(self, coordinator, config_entry, repository_data)
 
 
 class VeeamRepositoryTypeSensor(VeeamRepositoryBaseSensor):
@@ -785,7 +824,19 @@ class VeeamRepositoryUsedSpacePercentSensor(VeeamRepositoryBaseSensor):
         return "mdi:chart-arc"
 
 
-class VeeamRepositoryOnlineStatusSensor(VeeamRepositoryBaseSensor, BinarySensorEntity):
+class VeeamRepositoryBinarySensorBase(VeeamRepositoryMixin, CoordinatorEntity, BinarySensorEntity):
+    """Base class for Veeam Repository binary sensors."""
+
+    _attr_has_entity_name = True
+
+    def __init__(self, coordinator, config_entry, repository_data):
+        CoordinatorEntity.__init__(self, coordinator)
+        VeeamRepositoryMixin.__init__(self, coordinator, config_entry, repository_data)
+
+
+class VeeamRepositoryOnlineStatusSensor(VeeamRepositoryBinarySensorBase):
+    """Binary sensor for Veeam Repository Online Status."""
+
     _attr_device_class = BinarySensorDeviceClass.CONNECTIVITY
     _attr_entity_category = EntityCategory.DIAGNOSTIC
 
@@ -802,7 +853,9 @@ class VeeamRepositoryOnlineStatusSensor(VeeamRepositoryBaseSensor, BinarySensorE
         return repo.get("is_online")
 
 
-class VeeamRepositoryOutOfDateSensor(VeeamRepositoryBaseSensor, BinarySensorEntity):
+class VeeamRepositoryOutOfDateSensor(VeeamRepositoryBinarySensorBase):
+    """Binary sensor for Veeam Repository Out of Date Status."""
+
     _attr_device_class = BinarySensorDeviceClass.PROBLEM
     _attr_entity_category = EntityCategory.DIAGNOSTIC
 
