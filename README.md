@@ -124,7 +124,7 @@ automation:
                 {% set ns.jobs = ns.jobs + [sensor.name | replace(' Status', '') ~ ': ' ~ sensor.state] %}
               {% endif %}
             {% endfor %}
-            {{ ns.jobs | join('\n') }}
+            {{ ns.jobs | join('\n') if ns.jobs else 'No Veeam backup jobs found.' }}
 ```
 
 ## Support
