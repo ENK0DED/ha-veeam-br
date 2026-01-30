@@ -269,7 +269,7 @@ class VeeamServerBaseSensor(CoordinatorEntity, SensorEntity):
         server_name = server_info.get("name", "Unknown") if server_info else "Unknown"
         return {
             "identifiers": {(DOMAIN, f"server_{self._config_entry.entry_id}")},
-            "name": f"Veeam Server - {server_name}",
+            "name": f"{server_name}",
             "manufacturer": "Veeam",
             "model": "Backup & Replication Server",
         }
