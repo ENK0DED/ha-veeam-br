@@ -25,7 +25,7 @@ from .token_manager import VeeamTokenManager
 
 _LOGGER = logging.getLogger(__name__)
 
-PLATFORMS: list[Platform] = [Platform.SENSOR]
+PLATFORMS: list[Platform] = [Platform.SENSOR, Platform.BUTTON]
 
 
 async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
@@ -342,6 +342,12 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
                                 repo_dict["used_space_gb"] = getattr(state, "used_space_gb", None)
                                 repo_dict["is_online"] = getattr(state, "is_online", None)
                                 repo_dict["is_out_of_date"] = getattr(state, "is_out_of_date", None)
+                                # Add new repository state flags
+                                repo_dict["is_immutable"] = getattr(state, "is_immutable", None)
+                                repo_dict["is_object_lock"] = getattr(state, "is_object_lock", None)
+                                repo_dict["is_hardened"] = getattr(state, "is_hardened", None)
+                                repo_dict["is_accessible"] = getattr(state, "is_accessible", None)
+                                repo_dict["is_mounted"] = getattr(state, "is_mounted", None)
 
                             # Add all additional properties from the API response
                             if hasattr(repo, "additional_properties"):

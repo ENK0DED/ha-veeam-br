@@ -74,6 +74,13 @@ async def async_setup_entry(
                     VeeamRepositoryUsedSpacePercentSensor(coordinator, entry, repository),
                     VeeamRepositoryOnlineStatusSensor(coordinator, entry, repository),
                     VeeamRepositoryOutOfDateSensor(coordinator, entry, repository),
+                    VeeamRepositoryImmutableSensor(coordinator, entry, repository),
+                    VeeamRepositoryObjectLockSensor(coordinator, entry, repository),
+                    VeeamRepositoryHardenedSensor(coordinator, entry, repository),
+                    VeeamRepositoryAccessibleSensor(coordinator, entry, repository),
+                    VeeamRepositoryMountedSensor(coordinator, entry, repository),
+                    VeeamRepositoryCapacityWarningSensor(coordinator, entry, repository),
+                    VeeamRepositoryCapacityCriticalSensor(coordinator, entry, repository),
                 ]
             )
             added_repository_ids.add(repo_id)
@@ -954,3 +961,168 @@ class VeeamRepositoryOutOfDateSensor(VeeamRepositoryBinarySensorBase):
         if not repo:
             return None
         return bool(repo.get("is_out_of_date"))
+
+
+class VeeamRepositoryImmutableSensor(VeeamRepositoryBinarySensorBase):
+    """Binary sensor for Veeam Repository Immutability."""
+
+    _attr_entity_category = EntityCategory.DIAGNOSTIC
+
+    def __init__(self, coordinator, config_entry, repository_data):
+        super().__init__(coordinator, config_entry, repository_data)
+        self._attr_unique_id = f"{config_entry.entry_id}_repository_{self._repo_id}_immutable"
+        self._attr_name = "Immutable"
+
+    @property
+    def is_on(self) -> bool | None:
+        repo = self._repository()
+        if not repo:
+            return None
+        return bool(repo.get("is_immutable"))
+
+    @property
+    def icon(self) -> str:
+        return "mdi:lock" if self.is_on else "mdi:lock-open"
+
+
+class VeeamRepositoryObjectLockSensor(VeeamRepositoryBinarySensorBase):
+    """Binary sensor for Veeam Repository Object Lock."""
+
+    _attr_entity_category = EntityCategory.DIAGNOSTIC
+
+    def __init__(self, coordinator, config_entry, repository_data):
+        super().__init__(coordinator, config_entry, repository_data)
+        self._attr_unique_id = f"{config_entry.entry_id}_repository_{self._repo_id}_object_lock"
+        self._attr_name = "Object Lock"
+
+    @property
+    def is_on(self) -> bool | None:
+        repo = self._repository()
+        if not repo:
+            return None
+        return bool(repo.get("is_object_lock"))
+
+    @property
+    def icon(self) -> str:
+        return "mdi:shield-lock" if self.is_on else "mdi:shield-lock-open"
+
+
+class VeeamRepositoryHardenedSensor(VeeamRepositoryBinarySensorBase):
+    """Binary sensor for Veeam Repository Hardened status."""
+
+    _attr_entity_category = EntityCategory.DIAGNOSTIC
+
+    def __init__(self, coordinator, config_entry, repository_data):
+        super().__init__(coordinator, config_entry, repository_data)
+        self._attr_unique_id = f"{config_entry.entry_id}_repository_{self._repo_id}_hardened"
+        self._attr_name = "Hardened"
+
+    @property
+    def is_on(self) -> bool | None:
+        repo = self._repository()
+        if not repo:
+            return None
+        return bool(repo.get("is_hardened"))
+
+    @property
+    def icon(self) -> str:
+        return "mdi:security" if self.is_on else "mdi:security-off"
+
+
+class VeeamRepositoryAccessibleSensor(VeeamRepositoryBinarySensorBase):
+    """Binary sensor for Veeam Repository Accessible status."""
+
+    _attr_device_class = BinarySensorDeviceClass.CONNECTIVITY
+    _attr_entity_category = EntityCategory.DIAGNOSTIC
+
+    def __init__(self, coordinator, config_entry, repository_data):
+        super().__init__(coordinator, config_entry, repository_data)
+        self._attr_unique_id = f"{config_entry.entry_id}_repository_{self._repo_id}_accessible"
+        self._attr_name = "Accessible"
+
+    @property
+    def is_on(self) -> bool | None:
+        repo = self._repository()
+        if not repo:
+            return None
+        return bool(repo.get("is_accessible"))
+
+
+class VeeamRepositoryMountedSensor(VeeamRepositoryBinarySensorBase):
+    """Binary sensor for Veeam Repository Mounted status."""
+
+    _attr_entity_category = EntityCategory.DIAGNOSTIC
+
+    def __init__(self, coordinator, config_entry, repository_data):
+        super().__init__(coordinator, config_entry, repository_data)
+        self._attr_unique_id = f"{config_entry.entry_id}_repository_{self._repo_id}_mounted"
+        self._attr_name = "Mounted"
+
+    @property
+    def is_on(self) -> bool | None:
+        repo = self._repository()
+        if not repo:
+            return None
+        return bool(repo.get("is_mounted"))
+
+    @property
+    def icon(self) -> str:
+        return "mdi:folder-open" if self.is_on else "mdi:folder"
+
+
+class VeeamRepositoryCapacityWarningSensor(VeeamRepositoryBinarySensorBase):
+    """Binary sensor for Veeam Repository Capacity Warning (< 15% free)."""
+
+    _attr_device_class = BinarySensorDeviceClass.PROBLEM
+
+    def __init__(self, coordinator, config_entry, repository_data):
+        super().__init__(coordinator, config_entry, repository_data)
+        self._attr_unique_id = (
+            f"{config_entry.entry_id}_repository_{self._repo_id}_capacity_warning"
+        )
+        self._attr_name = "Capacity Warning"
+
+    @property
+    def is_on(self) -> bool | None:
+        repo = self._repository()
+        if not repo:
+            return None
+        capacity = repo.get("capacity_gb")
+        free = repo.get("free_gb")
+        if capacity and capacity > 0 and free is not None:
+            free_percent = (free / capacity) * 100
+            return free_percent < 15
+        return None
+
+    @property
+    def icon(self) -> str:
+        return "mdi:alert" if self.is_on else "mdi:check-circle"
+
+
+class VeeamRepositoryCapacityCriticalSensor(VeeamRepositoryBinarySensorBase):
+    """Binary sensor for Veeam Repository Capacity Critical (< 5% free)."""
+
+    _attr_device_class = BinarySensorDeviceClass.PROBLEM
+
+    def __init__(self, coordinator, config_entry, repository_data):
+        super().__init__(coordinator, config_entry, repository_data)
+        self._attr_unique_id = (
+            f"{config_entry.entry_id}_repository_{self._repo_id}_capacity_critical"
+        )
+        self._attr_name = "Capacity Critical"
+
+    @property
+    def is_on(self) -> bool | None:
+        repo = self._repository()
+        if not repo:
+            return None
+        capacity = repo.get("capacity_gb")
+        free = repo.get("free_gb")
+        if capacity and capacity > 0 and free is not None:
+            free_percent = (free / capacity) * 100
+            return free_percent < 5
+        return None
+
+    @property
+    def icon(self) -> str:
+        return "mdi:alert-circle" if self.is_on else "mdi:check-circle"
