@@ -10,6 +10,7 @@ from homeassistant.config_entries import ConfigEntry
 from homeassistant.const import CONF_HOST, CONF_PASSWORD, CONF_PORT, CONF_USERNAME, Platform
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers.update_coordinator import DataUpdateCoordinator, UpdateFailed
+from homeassistant.util import dt as dt_util
 
 from .const import (
     API_VERSIONS,
@@ -72,9 +73,17 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
 
     async def async_update_data():
         """Fetch data from API."""
+        # Track connection state for diagnostic sensors
+        connected = False
+        health_ok = False
+        last_successful_poll = None
+
         try:
             if not await token_manager.ensure_valid_token(hass):
                 raise UpdateFailed("Failed to obtain valid access token")
+
+            # Mark as connected since we have a valid token
+            connected = True
 
             client = token_manager.get_authenticated_client()
             if not client:
@@ -361,14 +370,25 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
                 "Total repositories added to coordinator data: %d", len(repositories_list)
             )
 
+            # Update diagnostic values - successful poll
+            health_ok = True
+            last_successful_poll = dt_util.now()
+
             return {
                 "jobs": jobs_list,
                 "server_info": server_info,
                 "license_info": license_info,
                 "repositories": repositories_list,
+                "diagnostics": {
+                    "connected": connected,
+                    "health_ok": health_ok,
+                    "last_successful_poll": last_successful_poll,
+                },
             }
 
         except Exception as err:
+            # When an update fails, the coordinator retains the last successful data,
+            # so diagnostic sensors will continue to show the last successful poll time
             raise UpdateFailed(f"Error communicating with API: {err}") from err
 
     coordinator = DataUpdateCoordinator(
