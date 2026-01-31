@@ -810,7 +810,7 @@ class VeeamLicenseAutoUpdateSensor(VeeamLicenseBinarySensorBase):
 
     @property
     def icon(self) -> str:
-        return "mdi:update" if self.is_on else "mdi:update-off"
+        return "mdi:update"
 
 
 class VeeamLicenseCloudConnectSensor(VeeamLicenseBinarySensorBase):
