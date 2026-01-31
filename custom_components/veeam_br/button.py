@@ -27,6 +27,7 @@ async def async_setup_entry(
     veeam_client = hass.data[DOMAIN][entry.entry_id]["veeam_client"]
 
     added_repository_ids: set[str] = set()
+    added_sobr_extent_ids: set[tuple[str, str]] = set()  # (sobr_id, extent_id) tuples
 
     @callback
     def _sync_entities() -> None:
@@ -50,6 +51,48 @@ async def async_setup_entry(
                 repository.get("name"),
                 repo_id,
             )
+
+        # Create buttons for each SOBR extent
+        for sobr in coordinator.data.get("sobrs", []):
+            sobr_id = sobr.get("id")
+            sobr_name = sobr.get("name", "Unknown SOBR")
+            if not sobr_id:
+                continue
+
+            for extent in sobr.get("extents", []):
+                extent_id = extent.get("id")
+                if not extent_id:
+                    continue
+
+                extent_key = (sobr_id, extent_id)
+                if extent_key in added_sobr_extent_ids:
+                    continue
+
+                # Create 4 buttons for each extent (enable/disable sealed and maintenance mode)
+                new_entities.extend(
+                    [
+                        VeeamSOBRExtentEnableSealedModeButton(
+                            coordinator, entry, sobr, extent, veeam_client
+                        ),
+                        VeeamSOBRExtentDisableSealedModeButton(
+                            coordinator, entry, sobr, extent, veeam_client
+                        ),
+                        VeeamSOBRExtentEnableMaintenanceModeButton(
+                            coordinator, entry, sobr, extent, veeam_client
+                        ),
+                        VeeamSOBRExtentDisableMaintenanceModeButton(
+                            coordinator, entry, sobr, extent, veeam_client
+                        ),
+                    ]
+                )
+                added_sobr_extent_ids.add(extent_key)
+                _LOGGER.debug(
+                    "Adding buttons for SOBR extent: %s/%s (sobr_id: %s, extent_id: %s)",
+                    sobr_name,
+                    extent.get("name"),
+                    sobr_id,
+                    extent_id,
+                )
 
         if new_entities:
             _LOGGER.debug("Adding %d Veeam buttons", len(new_entities))
@@ -148,3 +191,327 @@ class VeeamRepositoryRescanButton(CoordinatorEntity, ButtonEntity):
 
         except Exception as err:
             _LOGGER.error("Error rescanning repository %s: %s", self._repo_name, err)
+
+
+# ===========================
+# SOBR EXTENT BUTTONS
+# ===========================
+
+
+class VeeamSOBRExtentButtonBase(CoordinatorEntity, ButtonEntity):
+    """Base class for SOBR extent buttons."""
+
+    _attr_has_entity_name = True
+    _attr_entity_category = EntityCategory.CONFIG
+
+    def __init__(self, coordinator, config_entry, sobr_data, extent_data, veeam_client):
+        """Initialize the SOBR extent button."""
+        super().__init__(coordinator)
+        self._config_entry = config_entry
+        self._sobr_id = sobr_data.get("id")
+        self._sobr_name = sobr_data.get("name", "Unknown SOBR")
+        self._extent_id = extent_data.get("id")
+        self._extent_name = extent_data.get("name", "Unknown Extent")
+        self._veeam_client = veeam_client
+
+    @property
+    def device_info(self):
+        """Return device info for this SOBR."""
+        return {
+            "identifiers": {(DOMAIN, f"sobr_{self._sobr_id}")},
+            "name": f"{self._sobr_name}",
+            "manufacturer": "Veeam",
+            "model": "Scale-Out Backup Repository",
+        }
+
+
+class VeeamSOBRExtentEnableSealedModeButton(VeeamSOBRExtentButtonBase):
+    """Button to enable sealed mode for a SOBR extent."""
+
+    def __init__(self, coordinator, config_entry, sobr_data, extent_data, veeam_client):
+        """Initialize the button."""
+        super().__init__(coordinator, config_entry, sobr_data, extent_data, veeam_client)
+        self._attr_unique_id = (
+            f"{config_entry.entry_id}_sobr_{self._sobr_id}_extent_{self._extent_id}"
+            f"_enable_sealed_mode"
+        )
+        self._attr_name = f"{self._extent_name} Enable Sealed Mode"
+
+    @property
+    def icon(self) -> str:
+        """Return the icon for the button."""
+        return "mdi:lock-check"
+
+    async def async_press(self) -> None:
+        """Handle the button press to enable sealed mode for the extent."""
+        try:
+            # Get the API version
+            api_version = self._config_entry.options.get(
+                CONF_API_VERSION,
+                self._config_entry.data.get(CONF_API_VERSION, DEFAULT_API_VERSION),
+            )
+            api_module = API_VERSIONS.get(api_version, "v1_3_rev1")
+
+            # Import the body model for the request
+            try:
+                models_module = importlib.import_module(
+                    f"veeam_br.{api_module}.models.scale_out_extent_maintenance_spec"
+                )
+                ScaleOutExtentMaintenanceSpec = models_module.ScaleOutExtentMaintenanceSpec
+                body = ScaleOutExtentMaintenanceSpec(repository_ids=[self._extent_id])
+            except (ImportError, AttributeError) as e:
+                _LOGGER.error(
+                    "Failed to import ScaleOutExtentMaintenanceSpec: %s. Cannot enable sealed mode.",
+                    e,
+                )
+                return
+
+            # Call the enable sealed mode endpoint
+            try:
+                await self._veeam_client.call(
+                    self._veeam_client.api("repositories").enable_scale_out_extent_sealed_mode,
+                    id=self._sobr_id,
+                    body=body,
+                )
+                _LOGGER.info(
+                    "Successfully enabled sealed mode for extent %s in SOBR %s",
+                    self._extent_name,
+                    self._sobr_name,
+                )
+                await self.coordinator.async_request_refresh()
+            except Exception as call_err:
+                _LOGGER.error(
+                    "Failed to enable sealed mode for extent %s in SOBR %s: %s",
+                    self._extent_name,
+                    self._sobr_name,
+                    call_err,
+                )
+                raise
+
+        except Exception as err:
+            _LOGGER.error(
+                "Error enabling sealed mode for extent %s in SOBR %s: %s",
+                self._extent_name,
+                self._sobr_name,
+                err,
+            )
+
+
+class VeeamSOBRExtentDisableSealedModeButton(VeeamSOBRExtentButtonBase):
+    """Button to disable sealed mode for a SOBR extent."""
+
+    def __init__(self, coordinator, config_entry, sobr_data, extent_data, veeam_client):
+        """Initialize the button."""
+        super().__init__(coordinator, config_entry, sobr_data, extent_data, veeam_client)
+        self._attr_unique_id = (
+            f"{config_entry.entry_id}_sobr_{self._sobr_id}_extent_{self._extent_id}"
+            f"_disable_sealed_mode"
+        )
+        self._attr_name = f"{self._extent_name} Disable Sealed Mode"
+
+    @property
+    def icon(self) -> str:
+        """Return the icon for the button."""
+        return "mdi:lock-open"
+
+    async def async_press(self) -> None:
+        """Handle the button press to disable sealed mode for the extent."""
+        try:
+            # Get the API version
+            api_version = self._config_entry.options.get(
+                CONF_API_VERSION,
+                self._config_entry.data.get(CONF_API_VERSION, DEFAULT_API_VERSION),
+            )
+            api_module = API_VERSIONS.get(api_version, "v1_3_rev1")
+
+            # Import the body model for the request
+            try:
+                models_module = importlib.import_module(
+                    f"veeam_br.{api_module}.models.scale_out_extent_maintenance_spec"
+                )
+                ScaleOutExtentMaintenanceSpec = models_module.ScaleOutExtentMaintenanceSpec
+                body = ScaleOutExtentMaintenanceSpec(repository_ids=[self._extent_id])
+            except (ImportError, AttributeError) as e:
+                _LOGGER.error(
+                    "Failed to import ScaleOutExtentMaintenanceSpec: %s. Cannot disable sealed mode.",
+                    e,
+                )
+                return
+
+            # Call the disable sealed mode endpoint
+            try:
+                await self._veeam_client.call(
+                    self._veeam_client.api("repositories").disable_scale_out_extent_sealed_mode,
+                    id=self._sobr_id,
+                    body=body,
+                )
+                _LOGGER.info(
+                    "Successfully disabled sealed mode for extent %s in SOBR %s",
+                    self._extent_name,
+                    self._sobr_name,
+                )
+                await self.coordinator.async_request_refresh()
+            except Exception as call_err:
+                _LOGGER.error(
+                    "Failed to disable sealed mode for extent %s in SOBR %s: %s",
+                    self._extent_name,
+                    self._sobr_name,
+                    call_err,
+                )
+                raise
+
+        except Exception as err:
+            _LOGGER.error(
+                "Error disabling sealed mode for extent %s in SOBR %s: %s",
+                self._extent_name,
+                self._sobr_name,
+                err,
+            )
+
+
+class VeeamSOBRExtentEnableMaintenanceModeButton(VeeamSOBRExtentButtonBase):
+    """Button to enable maintenance mode for a SOBR extent."""
+
+    def __init__(self, coordinator, config_entry, sobr_data, extent_data, veeam_client):
+        """Initialize the button."""
+        super().__init__(coordinator, config_entry, sobr_data, extent_data, veeam_client)
+        self._attr_unique_id = (
+            f"{config_entry.entry_id}_sobr_{self._sobr_id}_extent_{self._extent_id}"
+            f"_enable_maintenance_mode"
+        )
+        self._attr_name = f"{self._extent_name} Enable Maintenance Mode"
+
+    @property
+    def icon(self) -> str:
+        """Return the icon for the button."""
+        return "mdi:tools"
+
+    async def async_press(self) -> None:
+        """Handle the button press to enable maintenance mode for the extent."""
+        try:
+            # Get the API version
+            api_version = self._config_entry.options.get(
+                CONF_API_VERSION,
+                self._config_entry.data.get(CONF_API_VERSION, DEFAULT_API_VERSION),
+            )
+            api_module = API_VERSIONS.get(api_version, "v1_3_rev1")
+
+            # Import the body model for the request
+            try:
+                models_module = importlib.import_module(
+                    f"veeam_br.{api_module}.models.scale_out_extent_maintenance_spec"
+                )
+                ScaleOutExtentMaintenanceSpec = models_module.ScaleOutExtentMaintenanceSpec
+                body = ScaleOutExtentMaintenanceSpec(repository_ids=[self._extent_id])
+            except (ImportError, AttributeError) as e:
+                _LOGGER.error(
+                    "Failed to import ScaleOutExtentMaintenanceSpec: %s. "
+                    "Cannot enable maintenance mode.",
+                    e,
+                )
+                return
+
+            # Call the enable maintenance mode endpoint
+            try:
+                await self._veeam_client.call(
+                    self._veeam_client.api("repositories").enable_scale_out_extent_maintenance_mode,
+                    id=self._sobr_id,
+                    body=body,
+                )
+                _LOGGER.info(
+                    "Successfully enabled maintenance mode for extent %s in SOBR %s",
+                    self._extent_name,
+                    self._sobr_name,
+                )
+                await self.coordinator.async_request_refresh()
+            except Exception as call_err:
+                _LOGGER.error(
+                    "Failed to enable maintenance mode for extent %s in SOBR %s: %s",
+                    self._extent_name,
+                    self._sobr_name,
+                    call_err,
+                )
+                raise
+
+        except Exception as err:
+            _LOGGER.error(
+                "Error enabling maintenance mode for extent %s in SOBR %s: %s",
+                self._extent_name,
+                self._sobr_name,
+                err,
+            )
+
+
+class VeeamSOBRExtentDisableMaintenanceModeButton(VeeamSOBRExtentButtonBase):
+    """Button to disable maintenance mode for a SOBR extent."""
+
+    def __init__(self, coordinator, config_entry, sobr_data, extent_data, veeam_client):
+        """Initialize the button."""
+        super().__init__(coordinator, config_entry, sobr_data, extent_data, veeam_client)
+        self._attr_unique_id = (
+            f"{config_entry.entry_id}_sobr_{self._sobr_id}_extent_{self._extent_id}"
+            f"_disable_maintenance_mode"
+        )
+        self._attr_name = f"{self._extent_name} Disable Maintenance Mode"
+
+    @property
+    def icon(self) -> str:
+        """Return the icon for the button."""
+        return "mdi:close-circle-outline"
+
+    async def async_press(self) -> None:
+        """Handle the button press to disable maintenance mode for the extent."""
+        try:
+            # Get the API version
+            api_version = self._config_entry.options.get(
+                CONF_API_VERSION,
+                self._config_entry.data.get(CONF_API_VERSION, DEFAULT_API_VERSION),
+            )
+            api_module = API_VERSIONS.get(api_version, "v1_3_rev1")
+
+            # Import the body model for the request
+            try:
+                models_module = importlib.import_module(
+                    f"veeam_br.{api_module}.models.scale_out_extent_maintenance_spec"
+                )
+                ScaleOutExtentMaintenanceSpec = models_module.ScaleOutExtentMaintenanceSpec
+                body = ScaleOutExtentMaintenanceSpec(repository_ids=[self._extent_id])
+            except (ImportError, AttributeError) as e:
+                _LOGGER.error(
+                    "Failed to import ScaleOutExtentMaintenanceSpec: %s. "
+                    "Cannot disable maintenance mode.",
+                    e,
+                )
+                return
+
+            # Call the disable maintenance mode endpoint
+            try:
+                await self._veeam_client.call(
+                    self._veeam_client.api(
+                        "repositories"
+                    ).disable_scale_out_extent_maintenance_mode,
+                    id=self._sobr_id,
+                    body=body,
+                )
+                _LOGGER.info(
+                    "Successfully disabled maintenance mode for extent %s in SOBR %s",
+                    self._extent_name,
+                    self._sobr_name,
+                )
+                await self.coordinator.async_request_refresh()
+            except Exception as call_err:
+                _LOGGER.error(
+                    "Failed to disable maintenance mode for extent %s in SOBR %s: %s",
+                    self._extent_name,
+                    self._sobr_name,
+                    call_err,
+                )
+                raise
+
+        except Exception as err:
+            _LOGGER.error(
+                "Error disabling maintenance mode for extent %s in SOBR %s: %s",
+                self._extent_name,
+                self._sobr_name,
+                err,
+            )
