@@ -35,28 +35,12 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     )
     api_module = API_VERSIONS.get(api_version, "v1_3_rev1")
 
-    # Import API endpoints dynamically
+    # Import UNSET type for proper type checking
     try:
-        get_all_jobs_states = importlib.import_module(
-            f"veeam_br.{api_module}.api.jobs.get_all_jobs_states"
-        )
-        get_server_info = importlib.import_module(
-            f"veeam_br.{api_module}.api.service.get_server_info"
-        )
-        get_installed_license = importlib.import_module(
-            f"veeam_br.{api_module}.api.license_.get_installed_license"
-        )
-        get_all_repositories = importlib.import_module(
-            f"veeam_br.{api_module}.api.repositories.get_all_repositories"
-        )
-        get_all_repositories_states = importlib.import_module(
-            f"veeam_br.{api_module}.api.repositories.get_all_repositories_states"
-        )
-        # Import UNSET type for proper type checking
         types_module = importlib.import_module(f"veeam_br.{api_module}.types")
         UNSET = types_module.UNSET
     except ImportError as err:
-        _LOGGER.error("Failed to import veeam_br API: %s", err)
+        _LOGGER.error("Failed to import veeam_br types: %s", err)
         return False
 
     host = entry.data[CONF_HOST]
@@ -85,48 +69,18 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
             # Mark as connected since we have a valid token
             connected = True
 
-            client = token_manager.get_authenticated_client()
-            if not client:
-                raise UpdateFailed("No authenticated client available")
+            vc = token_manager.get_veeam_client()
+            if not vc:
+                raise UpdateFailed("No VeeamClient available")
 
-            def _get_jobs():
-                return get_all_jobs_states.sync_detailed(
-                    client=client,
-                    x_api_version=api_version,
-                )
+            # Fetch jobs data
+            jobs_response = await vc.call(vc.api("jobs").get_all_jobs_states)
 
-            def _get_server_info():
-                return get_server_info.sync_detailed(
-                    client=client,
-                    x_api_version=api_version,
-                )
-
-            def _get_license():
-                return get_installed_license.sync_detailed(
-                    client=client,
-                    x_api_version=api_version,
-                )
-
-            def _get_repositories():
-                return get_all_repositories.sync_detailed(
-                    client=client,
-                    x_api_version=api_version,
-                )
-
-            def _get_repositories_states():
-                return get_all_repositories_states.sync_detailed(
-                    client=client,
-                    x_api_version=api_version,
-                )
-
-            jobs_response = await hass.async_add_executor_job(_get_jobs)
-
-            if jobs_response.status_code != 200:
-                raise UpdateFailed(f"Jobs API returned status {jobs_response.status_code}")
+            if not jobs_response:
+                raise UpdateFailed("Jobs API returned no data")
 
             # Access the .data field from JobStatesResult
-            jobs_result = jobs_response.parsed
-            jobs_data = jobs_result.data if jobs_result else []
+            jobs_data = jobs_response.data if jobs_response else []
 
             # Helper function to safely get enum value
             def get_enum_value(enum_val, default="unknown"):
@@ -165,9 +119,8 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
             # Fetch server information
             server_info = None
             try:
-                server_response = await hass.async_add_executor_job(_get_server_info)
-                if server_response.status_code == 200 and server_response.parsed:
-                    server_data = server_response.parsed
+                server_data = await vc.call(vc.api("service").get_server_info)
+                if server_data:
                     server_info = {
                         "vbr_id": getattr(server_data, "vbr_id", "Unknown"),
                         "name": getattr(server_data, "name", "Unknown"),
@@ -197,9 +150,8 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
             # Fetch license information
             license_info = None
             try:
-                license_response = await hass.async_add_executor_job(_get_license)
-                if license_response.status_code == 200 and license_response.parsed:
-                    license_data = license_response.parsed
+                license_data = await vc.call(vc.api("license_").get_installed_license)
+                if license_data:
 
                     # Helper function to safely get enum value from object attribute
                     def get_license_enum_attr(obj, attr_name, default="Unknown"):
@@ -295,25 +247,20 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
                         )
                         return None
 
-                repositories_response = await hass.async_add_executor_job(_get_repositories)
-                repositories_states_response = await hass.async_add_executor_job(
-                    _get_repositories_states
+                repositories_result = await vc.call(vc.api("repositories").get_all_repositories)
+                repositories_states_result = await vc.call(
+                    vc.api("repositories").get_all_repositories_states
                 )
 
-                if repositories_response.status_code == 200 and repositories_response.parsed:
-                    repositories_result = repositories_response.parsed
+                if repositories_result:
                     repositories_data = repositories_result.data if repositories_result else []
 
                     _LOGGER.debug("Fetched %d repositories from API", len(repositories_data))
 
                     # Build states dict for quick lookup by ID
                     states_by_id = {}
-                    if (
-                        repositories_states_response.status_code == 200
-                        and repositories_states_response.parsed
-                    ):
-                        states_result = repositories_states_response.parsed
-                        states_data = states_result.data if states_result else []
+                    if repositories_states_result:
+                        states_data = repositories_states_result.data if repositories_states_result else []
                         for state in states_data:
                             repo_id = get_uuid_value(getattr(state, "id", None))
                             if repo_id:

@@ -113,66 +113,39 @@ class VeeamRepositoryRescanButton(CoordinatorEntity, ButtonEntity):
             )
             api_module = API_VERSIONS.get(api_version, "v1_3_rev1")
 
-            # Import the rescan endpoint dynamically
-            try:
-                rescan_repositories = importlib.import_module(
-                    f"veeam_br.{api_module}.api.repositories.rescan_repositories"
-                )
-            except ImportError:
-                _LOGGER.error("Rescan repositories API not available in version %s", api_version)
-                return
-
             # Ensure we have a valid token
             if not await self._token_manager.ensure_valid_token(self.hass):
                 _LOGGER.error("Failed to obtain valid access token for repository rescan")
                 return
 
-            client = self._token_manager.get_authenticated_client()
-            if not client:
-                _LOGGER.error("No authenticated client available for repository rescan")
+            vc = self._token_manager.get_veeam_client()
+            if not vc:
+                _LOGGER.error("No VeeamClient available for repository rescan")
                 return
 
-            # Trigger the rescan using veeam-br library
-            def _rescan():
-                # The rescan_repositories endpoint POST /api/v1/backupInfrastructure/repositories/rescan
+            # Trigger the rescan using veeam-br library VeeamClient
+            try:
                 # Import the body model for the rescan request
-                try:
-                    models_module = importlib.import_module(
-                        f"veeam_br.{api_module}.models.repositories_rescan_spec"
-                    )
-                    RepositoriesRescanSpec = models_module.RepositoriesRescanSpec
-                    body = RepositoriesRescanSpec(repository_ids=[self._repo_id])
-                except (ImportError, AttributeError) as e:
-                    _LOGGER.error(
-                        "Failed to import RepositoriesRescanSpec: %s. Cannot rescan repository.", e
-                    )
-                    return None
-
-                return rescan_repositories.sync_detailed(
-                    client=client,
-                    body=body,
-                    x_api_version=api_version,
+                models_module = importlib.import_module(
+                    f"veeam_br.{api_module}.models.repositories_rescan_spec"
                 )
-
-            response = await self.hass.async_add_executor_job(_rescan)
-
-            if response is None:
-                _LOGGER.error("Failed to create rescan request for repository: %s", self._repo_name)
+                RepositoriesRescanSpec = models_module.RepositoriesRescanSpec
+                body = RepositoriesRescanSpec(repository_ids=[self._repo_id])
+            except (ImportError, AttributeError) as e:
+                _LOGGER.error(
+                    "Failed to import RepositoriesRescanSpec: %s. Cannot rescan repository.", e
+                )
                 return
 
-            # 201 means the rescan was scheduled (async operation)
-            # 200, 202, 204 are also success codes
-            if response.status_code in (200, 201, 202, 204):
-                _LOGGER.info("Successfully triggered rescan for repository: %s", self._repo_name)
-                # Request coordinator update to refresh repository state
-                await self.coordinator.async_request_refresh()
-            else:
-                _LOGGER.error(
-                    "Failed to rescan repository %s: HTTP %s - %s",
-                    self._repo_name,
-                    response.status_code,
-                    getattr(response, "text", "No error details"),
-                )
+            # Call the rescan endpoint using VeeamClient
+            await vc.call(
+                vc.api("repositories").rescan_repositories,
+                body=body,
+            )
+
+            _LOGGER.info("Successfully triggered rescan for repository: %s", self._repo_name)
+            # Request coordinator update to refresh repository state
+            await self.coordinator.async_request_refresh()
 
         except Exception as err:
             _LOGGER.error("Error rescanning repository %s: %s", self._repo_name, err)
