@@ -27,6 +27,7 @@ async def async_setup_entry(
 
     added_job_ids: set[str] = set()
     added_repository_ids: set[str] = set()
+    added_sobr_ids: set[str] = set()
     server_added = False
     license_added = False
 
@@ -91,6 +92,26 @@ async def async_setup_entry(
                 "Adding repository sensors for: %s (id: %s)",
                 repository.get("name"),
                 repo_id,
+            )
+
+        # ---- SOBR SENSORS (dynamic) - Each SOBR becomes a device with multiple sensors ----
+        for sobr in coordinator.data.get("sobrs", []):
+            sobr_id = sobr.get("id")
+            if not sobr_id or sobr_id in added_sobr_ids:
+                continue
+
+            # Create sensors for each SOBR attribute
+            new_entities.extend(
+                [
+                    VeeamSOBRDescriptionSensor(coordinator, entry, sobr),
+                    VeeamSOBRExtentCountSensor(coordinator, entry, sobr),
+                ]
+            )
+            added_sobr_ids.add(sobr_id)
+            _LOGGER.debug(
+                "Adding SOBR sensors for: %s (id: %s)",
+                sobr.get("name"),
+                sobr_id,
             )
 
         # ---- SERVER SENSORS (once) - Server info becomes a device with multiple sensors ----
@@ -1094,3 +1115,88 @@ class VeeamRepositoryCapacityCriticalSensor(VeeamRepositoryBinarySensorBase):
     @property
     def icon(self) -> str:
         return "mdi:alert-circle" if self.is_on else "mdi:check-circle"
+
+
+# ===========================
+# SOBR SENSORS (device per SOBR)
+# ===========================
+
+
+class VeeamSOBRMixin:
+    """Mixin providing shared SOBR-related functionality."""
+
+    def __init__(self, coordinator, config_entry, sobr_data):
+        """Initialize the mixin."""
+        self._config_entry = config_entry
+        self._sobr_id = sobr_data.get("id")
+        self._sobr_name = sobr_data.get("name", "Unknown SOBR")
+
+    def _sobr(self) -> dict[str, Any] | None:
+        """Get SOBR data from coordinator."""
+        if not self.coordinator.data:
+            return None
+        for sobr in self.coordinator.data.get("sobrs", []):
+            if sobr.get("id") == self._sobr_id:
+                return sobr
+        return None
+
+    @property
+    def device_info(self):
+        """Return device info for this SOBR."""
+        return {
+            "identifiers": {(DOMAIN, f"sobr_{self._sobr_id}")},
+            "name": f"{self._sobr_name}",
+            "manufacturer": "Veeam",
+            "model": "Scale-Out Backup Repository",
+        }
+
+
+class VeeamSOBRBaseSensor(VeeamSOBRMixin, CoordinatorEntity, SensorEntity):
+    """Base class for Veeam SOBR sensors."""
+
+    _attr_has_entity_name = True
+
+    def __init__(self, coordinator, config_entry, sobr_data):
+        CoordinatorEntity.__init__(self, coordinator)
+        VeeamSOBRMixin.__init__(self, coordinator, config_entry, sobr_data)
+
+
+class VeeamSOBRDescriptionSensor(VeeamSOBRBaseSensor):
+    """Sensor for Veeam SOBR Description."""
+
+    def __init__(self, coordinator, config_entry, sobr_data):
+        super().__init__(coordinator, config_entry, sobr_data)
+        self._attr_unique_id = f"{config_entry.entry_id}_sobr_{self._sobr_id}_description"
+        self._attr_name = "Description"
+        self._attr_entity_category = EntityCategory.DIAGNOSTIC
+
+    @property
+    def native_value(self) -> str | None:
+        sobr = self._sobr()
+        return sobr.get("description", "") if sobr else None
+
+    @property
+    def icon(self) -> str:
+        return "mdi:information"
+
+
+class VeeamSOBRExtentCountSensor(VeeamSOBRBaseSensor):
+    """Sensor for Veeam SOBR Extent Count."""
+
+    def __init__(self, coordinator, config_entry, sobr_data):
+        super().__init__(coordinator, config_entry, sobr_data)
+        self._attr_unique_id = f"{config_entry.entry_id}_sobr_{self._sobr_id}_extent_count"
+        self._attr_name = "Extent Count"
+        self._attr_entity_category = EntityCategory.DIAGNOSTIC
+
+    @property
+    def native_value(self) -> int | None:
+        sobr = self._sobr()
+        if not sobr:
+            return None
+        extents = sobr.get("extents", [])
+        return len(extents)
+
+    @property
+    def icon(self) -> str:
+        return "mdi:database-cluster"
