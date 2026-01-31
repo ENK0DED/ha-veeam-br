@@ -116,7 +116,9 @@ def check_api_feature_availability(api_version: str, feature_path: str) -> bool:
 
 
 # API feature requirements mapping
-# Maps entity types to their required API features (models/endpoints)
+# This mapping documents which API features (models/endpoints) are required for each entity type.
+# It serves as reference documentation for developers - feature paths are used directly
+# in button.py and sensor.py via check_api_feature_availability() calls.
 API_FEATURE_REQUIREMENTS = {
     # Button features
     "job_start_button": "models.job_start_spec",
