@@ -9,6 +9,7 @@ from homeassistant.components.button import ButtonEntity
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.const import EntityCategory
 from homeassistant.core import HomeAssistant, callback
+from homeassistant.helpers import entity_registry as er
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 from homeassistant.helpers.update_coordinator import CoordinatorEntity
 
@@ -146,6 +147,63 @@ async def async_setup_entry(
         if new_entities:
             _LOGGER.debug("Adding %d Veeam buttons", len(new_entities))
             async_add_entities(new_entities)
+
+        # Remove stale button entities
+        _remove_stale_button_entities(hass, entry, added_repository_ids, added_sobr_extent_ids, added_job_ids)
+
+    def _remove_stale_button_entities(
+        hass: HomeAssistant,
+        entry: ConfigEntry,
+        current_repo_ids: set[str],
+        current_sobr_extent_ids: set[tuple[str, str]],
+        current_job_ids: set[str],
+    ) -> None:
+        """Remove button entities for repos/sobrs/jobs that no longer exist."""
+        if not coordinator.data:
+            return
+
+        entity_reg = er.async_get(hass)
+        
+        # Get current IDs from coordinator data
+        current_repos_in_data = {repo.get("id") for repo in coordinator.data.get("repositories", []) if repo.get("id")}
+        current_jobs_in_data = {job.get("id") for job in coordinator.data.get("jobs", []) if job.get("id")}
+        
+        # Track current SOBR extents in data
+        current_sobr_extents_in_data = set()
+        for sobr in coordinator.data.get("sobrs", []):
+            sobr_id = sobr.get("id")
+            if sobr_id:
+                for extent in sobr.get("extents", []):
+                    extent_id = extent.get("id")
+                    if extent_id:
+                        current_sobr_extents_in_data.add((sobr_id, extent_id))
+        
+        # Find stale repository buttons
+        stale_repo_ids = current_repo_ids - current_repos_in_data
+        for repo_id in stale_repo_ids:
+            for entity in er.async_entries_for_config_entry(entity_reg, entry.entry_id):
+                if entity.unique_id and f"repository_{repo_id}_rescan" in entity.unique_id:
+                    _LOGGER.info("Removing stale repository button: %s", entity.entity_id)
+                    entity_reg.async_remove(entity.entity_id)
+            current_repo_ids.discard(repo_id)
+        
+        # Find stale SOBR extent buttons
+        stale_sobr_extents = current_sobr_extent_ids - current_sobr_extents_in_data
+        for sobr_id, extent_id in stale_sobr_extents:
+            for entity in er.async_entries_for_config_entry(entity_reg, entry.entry_id):
+                if entity.unique_id and f"sobr_{sobr_id}_extent_{extent_id}" in entity.unique_id:
+                    _LOGGER.info("Removing stale SOBR extent button: %s", entity.entity_id)
+                    entity_reg.async_remove(entity.entity_id)
+            current_sobr_extent_ids.discard((sobr_id, extent_id))
+        
+        # Find stale job buttons
+        stale_job_ids = current_job_ids - current_jobs_in_data
+        for job_id in stale_job_ids:
+            for entity in er.async_entries_for_config_entry(entity_reg, entry.entry_id):
+                if entity.unique_id and f"job_{job_id}" in entity.unique_id:
+                    _LOGGER.info("Removing stale job button: %s", entity.entity_id)
+                    entity_reg.async_remove(entity.entity_id)
+            current_job_ids.discard(job_id)
 
     # First attempt (after first refresh already ran)
     _sync_entities()

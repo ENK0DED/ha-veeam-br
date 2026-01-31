@@ -10,6 +10,7 @@ from homeassistant.components.sensor import SensorDeviceClass, SensorEntity, Sen
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.const import EntityCategory
 from homeassistant.core import HomeAssistant, callback
+from homeassistant.helpers import entity_registry as er
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 from homeassistant.helpers.update_coordinator import CoordinatorEntity
 
@@ -177,6 +178,55 @@ async def async_setup_entry(
         if new_entities:
             _LOGGER.debug("Adding %d Veeam sensors", len(new_entities))
             async_add_entities(new_entities)
+
+        # Remove stale entities (jobs/repos/sobrs that no longer exist)
+        _remove_stale_entities(hass, entry, added_job_ids, added_repository_ids, added_sobr_ids)
+
+    def _remove_stale_entities(
+        hass: HomeAssistant,
+        entry: ConfigEntry,
+        current_job_ids: set[str],
+        current_repo_ids: set[str],
+        current_sobr_ids: set[str],
+    ) -> None:
+        """Remove entities for jobs/repos/sobrs that no longer exist."""
+        if not coordinator.data:
+            return
+
+        entity_reg = er.async_get(hass)
+        
+        # Get current IDs from coordinator data
+        current_jobs_in_data = {job.get("id") for job in coordinator.data.get("jobs", []) if job.get("id")}
+        current_repos_in_data = {repo.get("id") for repo in coordinator.data.get("repositories", []) if repo.get("id")}
+        current_sobrs_in_data = {sobr.get("id") for sobr in coordinator.data.get("sobrs", []) if sobr.get("id")}
+        
+        # Find stale job entities
+        stale_job_ids = current_job_ids - current_jobs_in_data
+        for job_id in stale_job_ids:
+            # Remove all entities for this job
+            for entity in er.async_entries_for_config_entry(entity_reg, entry.entry_id):
+                if entity.unique_id and f"job_{job_id}" in entity.unique_id:
+                    _LOGGER.info("Removing stale job entity: %s", entity.entity_id)
+                    entity_reg.async_remove(entity.entity_id)
+            current_job_ids.discard(job_id)
+        
+        # Find stale repository entities
+        stale_repo_ids = current_repo_ids - current_repos_in_data
+        for repo_id in stale_repo_ids:
+            for entity in er.async_entries_for_config_entry(entity_reg, entry.entry_id):
+                if entity.unique_id and f"repository_{repo_id}" in entity.unique_id:
+                    _LOGGER.info("Removing stale repository entity: %s", entity.entity_id)
+                    entity_reg.async_remove(entity.entity_id)
+            current_repo_ids.discard(repo_id)
+        
+        # Find stale SOBR entities
+        stale_sobr_ids = current_sobr_ids - current_sobrs_in_data
+        for sobr_id in stale_sobr_ids:
+            for entity in er.async_entries_for_config_entry(entity_reg, entry.entry_id):
+                if entity.unique_id and f"sobr_{sobr_id}" in entity.unique_id:
+                    _LOGGER.info("Removing stale SOBR entity: %s", entity.entity_id)
+                    entity_reg.async_remove(entity.entity_id)
+            current_sobr_ids.discard(sobr_id)
 
     # First attempt (after first refresh already ran)
     _sync_entities()
