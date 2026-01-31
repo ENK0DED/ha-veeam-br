@@ -197,6 +197,21 @@
       },
       "sobr_extent_disable_maintenance": {
         "name": "{extent_name} disable maintenance mode"
+      },
+      "job_start": {
+        "name": "Start"
+      },
+      "job_stop": {
+        "name": "Stop"
+      },
+      "job_retry": {
+        "name": "Retry"
+      },
+      "job_enable": {
+        "name": "Enable"
+      },
+      "job_disable": {
+        "name": "Disable"
       }
     }
   },
@@ -215,6 +230,21 @@
     },
     "extent_operation_failed": {
       "message": "Failed to {operation} for extent {extent_name}: {error}"
+    },
+    "job_start_failed": {
+      "message": "Failed to start job {job_name}: {error}"
+    },
+    "job_stop_failed": {
+      "message": "Failed to stop job {job_name}: {error}"
+    },
+    "job_retry_failed": {
+      "message": "Failed to retry job {job_name}: {error}"
+    },
+    "job_enable_failed": {
+      "message": "Failed to enable job {job_name}: {error}"
+    },
+    "job_disable_failed": {
+      "message": "Failed to disable job {job_name}: {error}"
     },
     "timeout_error": {
       "message": "Request to Veeam server timed out"
