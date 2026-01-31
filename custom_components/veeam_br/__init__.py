@@ -21,7 +21,6 @@ from .const import (
     DOMAIN,
     UPDATE_INTERVAL,
 )
-from .token_manager import VeeamTokenManager
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -30,6 +29,8 @@ PLATFORMS: list[Platform] = [Platform.SENSOR, Platform.BUTTON]
 
 async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     """Set up Veeam Backup & Replication from a config entry."""
+    from veeam_br.client import VeeamClient
+
     api_version = entry.options.get(
         CONF_API_VERSION, entry.data.get(CONF_API_VERSION, DEFAULT_API_VERSION)
     )
@@ -47,13 +48,21 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     port = entry.data[CONF_PORT]
     base_url = f"https://{host}:{port}"
 
-    token_manager = VeeamTokenManager(
-        base_url=base_url,
+    # Create VeeamClient directly - it handles token rotation automatically
+    veeam_client = VeeamClient(
+        host=base_url,
         username=entry.data[CONF_USERNAME],
         password=entry.data[CONF_PASSWORD],
-        verify_ssl=entry.data.get(CONF_VERIFY_SSL, DEFAULT_VERIFY_SSL),
         api_version=api_version,
+        verify_ssl=entry.data.get(CONF_VERIFY_SSL, DEFAULT_VERIFY_SSL),
     )
+
+    # Connect to Veeam API
+    try:
+        await veeam_client.connect()
+    except Exception as err:
+        _LOGGER.error("Failed to connect to Veeam API: %s", err)
+        return False
 
     async def async_update_data():
         """Fetch data from API."""
@@ -63,18 +72,14 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
         last_successful_poll = None
 
         try:
-            if not await token_manager.ensure_valid_token(hass):
-                raise UpdateFailed("Failed to obtain valid access token")
+            # VeeamClient handles token refresh automatically in call() method
+            # No need for manual token validation
 
-            # Mark as connected since we have a valid token
+            # Mark as connected
             connected = True
 
-            vc = token_manager.get_veeam_client()
-            if not vc:
-                raise UpdateFailed("No VeeamClient available")
-
             # Fetch jobs data
-            jobs_response = await vc.call(vc.api("jobs").get_all_jobs_states)
+            jobs_response = await veeam_client.call(veeam_client.api("jobs").get_all_jobs_states)
 
             if not jobs_response:
                 raise UpdateFailed("Jobs API returned no data")
@@ -119,7 +124,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
             # Fetch server information
             server_info = None
             try:
-                server_data = await vc.call(vc.api("service").get_server_info)
+                server_data = await veeam_client.call(veeam_client.api("service").get_server_info)
                 if server_data:
                     server_info = {
                         "vbr_id": getattr(server_data, "vbr_id", "Unknown"),
@@ -150,7 +155,9 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
             # Fetch license information
             license_info = None
             try:
-                license_data = await vc.call(vc.api("license_").get_installed_license)
+                license_data = await veeam_client.call(
+                    veeam_client.api("license_").get_installed_license
+                )
                 if license_data:
 
                     # Helper function to safely get enum value from object attribute
@@ -247,9 +254,11 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
                         )
                         return None
 
-                repositories_result = await vc.call(vc.api("repositories").get_all_repositories)
-                repositories_states_result = await vc.call(
-                    vc.api("repositories").get_all_repositories_states
+                repositories_result = await veeam_client.call(
+                    veeam_client.api("repositories").get_all_repositories
+                )
+                repositories_states_result = await veeam_client.call(
+                    veeam_client.api("repositories").get_all_repositories_states
                 )
 
                 if repositories_result:
@@ -394,7 +403,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     hass.data.setdefault(DOMAIN, {})
     hass.data[DOMAIN][entry.entry_id] = {
         "coordinator": coordinator,
-        "token_manager": token_manager,
+        "veeam_client": veeam_client,
     }
 
     await hass.config_entries.async_forward_entry_setups(entry, PLATFORMS)

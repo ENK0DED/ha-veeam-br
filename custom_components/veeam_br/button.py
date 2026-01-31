@@ -24,7 +24,7 @@ async def async_setup_entry(
 ) -> None:
     """Set up Veeam Backup & Replication buttons."""
     coordinator = hass.data[DOMAIN][entry.entry_id]["coordinator"]
-    token_manager = hass.data[DOMAIN][entry.entry_id]["token_manager"]
+    veeam_client = hass.data[DOMAIN][entry.entry_id]["veeam_client"]
 
     added_repository_ids: set[str] = set()
 
@@ -42,7 +42,7 @@ async def async_setup_entry(
                 continue
 
             new_entities.append(
-                VeeamRepositoryRescanButton(coordinator, entry, repository, token_manager)
+                VeeamRepositoryRescanButton(coordinator, entry, repository, veeam_client)
             )
             added_repository_ids.add(repo_id)
             _LOGGER.debug(
@@ -68,13 +68,13 @@ class VeeamRepositoryRescanButton(CoordinatorEntity, ButtonEntity):
     _attr_has_entity_name = True
     _attr_entity_category = EntityCategory.CONFIG
 
-    def __init__(self, coordinator, config_entry, repository_data, token_manager):
+    def __init__(self, coordinator, config_entry, repository_data, veeam_client):
         """Initialize the rescan button."""
         super().__init__(coordinator)
         self._config_entry = config_entry
         self._repo_id = repository_data.get("id")
         self._repo_name = repository_data.get("name", "Unknown Repository")
-        self._token_manager = token_manager
+        self._veeam_client = veeam_client
         self._attr_unique_id = f"{config_entry.entry_id}_repository_{self._repo_id}_rescan"
         self._attr_name = "Rescan"
 
@@ -113,15 +113,7 @@ class VeeamRepositoryRescanButton(CoordinatorEntity, ButtonEntity):
             )
             api_module = API_VERSIONS.get(api_version, "v1_3_rev1")
 
-            # Ensure we have a valid token
-            if not await self._token_manager.ensure_valid_token(self.hass):
-                _LOGGER.error("Failed to obtain valid access token for repository rescan")
-                return
-
-            vc = self._token_manager.get_veeam_client()
-            if not vc:
-                _LOGGER.error("No VeeamClient available for repository rescan")
-                return
+            # VeeamClient handles token refresh automatically - no manual check needed
 
             # Trigger the rescan using veeam-br library VeeamClient
             try:
@@ -139,8 +131,8 @@ class VeeamRepositoryRescanButton(CoordinatorEntity, ButtonEntity):
 
             # Call the rescan endpoint using VeeamClient
             try:
-                await vc.call(
-                    vc.api("repositories").rescan_repositories,
+                await self._veeam_client.call(
+                    self._veeam_client.api("repositories").rescan_repositories,
                     body=body,
                 )
                 _LOGGER.info("Successfully triggered rescan for repository: %s", self._repo_name)
