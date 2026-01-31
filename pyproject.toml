@@ -31,3 +31,17 @@ warn_unused_ignores = true
 disallow_any_generics = true
 check_untyped_defs = true
 no_implicit_reexport = true
+
+# Strict typing for Platinum tier
+strict = true
+warn_return_any = true
+warn_unused_configs = true
+disallow_untyped_defs = true
+disallow_incomplete_defs = true
+disallow_untyped_calls = false  # veeam-br library may not be fully typed
+disallow_subclassing_any = true
+
+[[tool.mypy.overrides]]
+module = "veeam_br.*"
+ignore_missing_imports = true
+ignore_errors = true

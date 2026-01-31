@@ -33,7 +33,7 @@ def test_manifest_valid():
     # Check specific values
     assert manifest["domain"] == "veeam_br"
     assert manifest["config_flow"] is True
-    assert manifest["quality_scale"] == "gold"
+    assert manifest["quality_scale"] == "platinum"
     assert "veeam-br" in manifest["requirements"][0]
 
 
@@ -236,3 +236,43 @@ def test_parallel_updates():
         button_content = f.read()
 
     assert "PARALLEL_UPDATES" in button_content, "button.py should define PARALLEL_UPDATES"
+
+
+def test_strict_typing():
+    """Test that strict typing is enabled (Platinum tier requirement)."""
+    from pathlib import Path
+
+    # Check pyproject.toml has strict typing enabled
+    pyproject_path = Path(__file__).parent.parent / "pyproject.toml"
+
+    with open(pyproject_path) as f:
+        content = f.read()
+
+    assert "strict = true" in content, "pyproject.toml should have mypy strict mode enabled"
+    assert (
+        "disallow_untyped_defs = true" in content
+    ), "pyproject.toml should have disallow_untyped_defs enabled"
+
+    # Check py.typed marker exists
+    py_typed_path = (
+        Path(__file__).parent.parent / "custom_components" / "veeam_br" / "py.typed"
+    )
+
+    assert py_typed_path.exists(), "py.typed marker file should exist for Platinum tier"
+
+
+def test_async_dependency():
+    """Test that the dependency is async (Platinum tier requirement)."""
+    from pathlib import Path
+
+    # Check that the integration uses await with veeam_br client
+    init_path = Path(__file__).parent.parent / "custom_components" / "veeam_br" / "__init__.py"
+
+    with open(init_path) as f:
+        init_content = f.read()
+
+    # Verify async usage
+    assert "await veeam_client.connect()" in init_content, "Should use async connect"
+    assert (
+        "await veeam_client.call(" in init_content
+    ), "Should use async call method (veeam-br is async)"
