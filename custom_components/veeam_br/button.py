@@ -457,7 +457,7 @@ class VeeamSOBRExtentDisableMaintenanceModeButton(VeeamSOBRExtentButtonBase):
     @property
     def icon(self) -> str:
         """Return the icon for the button."""
-        return "mdi:wrench-off"
+        return "mdi:close-circle-outline"
 
     async def async_press(self) -> None:
         """Handle the button press to disable maintenance mode for the extent."""
