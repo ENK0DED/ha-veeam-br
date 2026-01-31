@@ -599,6 +599,10 @@ class VeeamServerHealthOkSensor(VeeamServerBinarySensorBase):
         # Health reflects the current update status
         return self.coordinator.last_update_success
 
+    @property
+    def icon(self) -> str:
+        return "mdi:heart-pulse" if self.is_on else "mdi:heart-off"
+
 
 class VeeamServerConnectedSensor(VeeamServerBinarySensorBase):
     """Binary sensor for Veeam Server Connection Status."""
@@ -615,6 +619,10 @@ class VeeamServerConnectedSensor(VeeamServerBinarySensorBase):
     def is_on(self) -> bool | None:
         # Connection status reflects the current update status
         return self.coordinator.last_update_success
+
+    @property
+    def icon(self) -> str:
+        return "mdi:lan-connect" if self.is_on else "mdi:lan-disconnect"
 
 
 # ===========================
@@ -800,6 +808,10 @@ class VeeamLicenseAutoUpdateSensor(VeeamLicenseBinarySensorBase):
             return None
         return bool(value)
 
+    @property
+    def icon(self) -> str:
+        return "mdi:update" if self.is_on else "mdi:update-off"
+
 
 class VeeamLicenseCloudConnectSensor(VeeamLicenseBinarySensorBase):
     """Binary sensor for Veeam License Cloud Connect."""
@@ -822,6 +834,10 @@ class VeeamLicenseCloudConnectSensor(VeeamLicenseBinarySensorBase):
             return None
         # cloud_connect is an enum string (e.g., "Enabled", "Disabled"), not a boolean
         return str(cloud_connect).lower() == "enabled"
+
+    @property
+    def icon(self) -> str:
+        return "mdi:cloud-check" if self.is_on else "mdi:cloud-off"
 
 
 # ===========================
@@ -1045,6 +1061,10 @@ class VeeamRepositoryOnlineStatusSensor(VeeamRepositoryBinarySensorBase):
             return None
         return bool(value)
 
+    @property
+    def icon(self) -> str:
+        return "mdi:check-network" if self.is_on else "mdi:close-network"
+
 
 class VeeamRepositoryOutOfDateSensor(VeeamRepositoryBinarySensorBase):
     """Binary sensor for Veeam Repository Out of Date Status."""
@@ -1066,6 +1086,10 @@ class VeeamRepositoryOutOfDateSensor(VeeamRepositoryBinarySensorBase):
         if value is None:
             return None
         return bool(value)
+
+    @property
+    def icon(self) -> str:
+        return "mdi:alert-octagon" if self.is_on else "mdi:check-decagram"
 
 
 class VeeamRepositoryImmutableSensor(VeeamRepositoryBinarySensorBase):
@@ -1138,6 +1162,10 @@ class VeeamRepositoryAccessibleSensor(VeeamRepositoryBinarySensorBase):
         if value is None:
             return None
         return bool(value)
+
+    @property
+    def icon(self) -> str:
+        return "mdi:folder-open" if self.is_on else "mdi:folder-lock"
 
 
 class VeeamRepositoryCapacityWarningSensor(VeeamRepositoryBinarySensorBase):
