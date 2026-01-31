@@ -243,7 +243,7 @@ All devices and entities associated with this integration will be removed.
 ## Known Limitations
 
 - **Veeam Community Edition**: Not supported (lacks REST API)
-- **API Version Compatibility**: Requires Veeam B&R 11.0 or newer
+- **API Version Compatibility**: Requires Veeam B&R 12.1 or newer
 - **Stale Devices**: Deleted jobs/repositories remain as devices until manual removal (planned enhancement)
 - **Large Deployments**: Polling 100+ jobs may take several seconds per cycle
 - **Real-time Updates**: Changes reflected every 60 seconds, not immediately
@@ -265,7 +265,7 @@ The integration monitors the following Veeam objects:
 
 - **Sensors**: Status, type, timestamps, capacity, statistics
 - **Binary Sensors**: Online/offline, connectivity, update available
-- **Buttons**: Repository rescan, extent maintenance/sealed mode
+- **Buttons**: Repository rescan, extent maintenance/sealed mode, start/stop/enable/disable job
 
 ### Unsupported (Future Enhancements)
 
@@ -273,7 +273,6 @@ The integration monitors the following Veeam objects:
 - ⏳ Cloud repositories
 - ⏳ SureBackup jobs
 - ⏳ Instant VM Recovery sessions
-- ⏳ Service actions (start/stop jobs)
 
 ## Support
 
@@ -342,14 +341,6 @@ This project is licensed under the terms included in the LICENSE file.
 
 This integration uses the [veeam-br](https://github.com/Cenvora/veeam-br) Python library for communication with Veeam Backup & Replication servers. 
 
-## Contributing
-Contributions are welcome! To contribute:
-- Fork the repository
-- Create a feature branch
-- Make your changes and add tests
-- Submit a pull request with a clear description
-
-Please follow PEP8 style and include docstrings for new functions/classes.
 
 ## 🤝 Core Contributors
 This project is made possible thanks to the efforts of our core contributors:
