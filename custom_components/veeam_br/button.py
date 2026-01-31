@@ -16,6 +16,7 @@ from .const import (
     API_VERSIONS,
     CONF_API_VERSION,
     DEFAULT_API_VERSION,
+    DOMAIN,
     check_api_feature_availability,
 )
 

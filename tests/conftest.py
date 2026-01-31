@@ -5,12 +5,6 @@ from unittest.mock import AsyncMock, MagicMock, patch
 import pytest
 
 
-@pytest.fixture(autouse=True)
-def auto_enable_custom_integrations(enable_custom_integrations):
-    """Enable custom integrations."""
-    yield
-
-
 @pytest.fixture(name="mock_veeam_client")
 def mock_veeam_client_fixture():
     """Mock VeeamClient."""

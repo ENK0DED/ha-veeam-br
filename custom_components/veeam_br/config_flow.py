@@ -129,7 +129,9 @@ class VeeamBRConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
             step_id="reauth_confirm",
             data_schema=vol.Schema(
                 {
-                    vol.Required(CONF_USERNAME, default=reauth_entry.data.get(CONF_USERNAME)): cv.string,
+                    vol.Required(
+                        CONF_USERNAME, default=reauth_entry.data.get(CONF_USERNAME)
+                    ): cv.string,
                     vol.Required(CONF_PASSWORD): cv.string,
                 }
             ),

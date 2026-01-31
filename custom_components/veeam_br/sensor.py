@@ -13,7 +13,7 @@ from homeassistant.core import HomeAssistant, callback
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 from homeassistant.helpers.update_coordinator import CoordinatorEntity
 
-from .const import CONF_API_VERSION, DEFAULT_API_VERSION, check_api_feature_availability
+from .const import CONF_API_VERSION, DEFAULT_API_VERSION, DOMAIN, check_api_feature_availability
 
 _LOGGER = logging.getLogger(__name__)
 
