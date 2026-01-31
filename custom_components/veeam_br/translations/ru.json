@@ -13,42 +13,42 @@
           "api_version": "Версия API"
         },
         "data_description": {
-          "host": "Hostname or IP address of the Veeam Backup & Replication server",
-          "port": "REST API port (default: 9419)",
-          "username": "Username with administrator privileges",
-          "password": "Password for the specified user account",
-          "verify_ssl": "Enable SSL certificate verification (disable only for self-signed certificates)",
-          "api_version": "Veeam REST API version to use"
+          "host": "Имя хоста или IP-адрес сервера Veeam Backup & Replication",
+          "port": "Порт REST API (по умолчанию: 9419)",
+          "username": "Имя пользователя с правами администратора",
+          "password": "Пароль для указанной учетной записи",
+          "verify_ssl": "Включить проверку SSL-сертификата (отключайте только для самоподписанных сертификатов)",
+          "api_version": "Версия REST API Veeam для использования"
         }
       },
       "reconfigure": {
-        "title": "Reconfigure Veeam Backup & Replication",
-        "description": "Update the connection details for {host}.",
+        "title": "Переконфигурировать Veeam Backup & Replication",
+        "description": "Обновите данные подключения для {host}.",
         "data": {
-          "host": "Host",
-          "port": "Port",
-          "username": "Username",
-          "password": "Password",
-          "verify_ssl": "Verify SSL Certificate"
+          "host": "Хост",
+          "port": "Порт",
+          "username": "Имя пользователя",
+          "password": "Пароль",
+          "verify_ssl": "Проверять SSL-сертификат"
         },
         "data_description": {
-          "host": "Hostname or IP address of the Veeam server",
-          "port": "REST API port",
-          "username": "Administrator username",
-          "password": "User password",
-          "verify_ssl": "Verify SSL certificates"
+          "host": "Имя хоста или IP-адрес сервера Veeam",
+          "port": "Порт REST API",
+          "username": "Имя пользователя администратора",
+          "password": "Пароль пользователя",
+          "verify_ssl": "Проверять SSL-сертификаты"
         }
       },
       "reauth_confirm": {
-        "title": "Re-authenticate to Veeam Backup & Replication",
-        "description": "The authentication credentials for {host} are no longer valid. Please enter new credentials.",
+        "title": "Повторная аутентификация в Veeam Backup & Replication",
+        "description": "Учетные данные для {host} больше не действительны. Введите новые учетные данные.",
         "data": {
-          "username": "Username",
-          "password": "Password"
+          "username": "Имя пользователя",
+          "password": "Пароль"
         },
         "data_description": {
-          "username": "Administrator username",
-          "password": "User password"
+          "username": "Имя пользователя администратора",
+          "password": "Пароль пользователя"
         }
       }
     },
@@ -59,7 +59,7 @@
     },
     "abort": {
       "already_configured": "Этот сервер Veeam уже настроен",
-      "reauth_successful": "Re-authentication was successful"
+      "reauth_successful": "Повторная аутентификация прошла успешно"
     }
   },
   "options": {
@@ -71,7 +71,7 @@
           "api_version": "Версия API"
         },
         "data_description": {
-          "api_version": "Select the Veeam REST API version to use for this integration"
+          "api_version": "Выберите версию REST API Veeam для этой интеграции"
         }
       }
     },
@@ -84,168 +84,198 @@
   "entity": {
     "sensor": {
       "job_status": {
-        "name": "Status"
+        "name": "Статус"
       },
       "job_type": {
-        "name": "Type"
+        "name": "Тип"
       },
       "job_last_run": {
-        "name": "Last run"
+        "name": "Последний запуск"
       },
       "job_next_run": {
-        "name": "Next run"
+        "name": "Следующий запуск"
       },
       "job_last_result": {
-        "name": "Last result"
+        "name": "Последний результат"
       },
       "server_build_version": {
-        "name": "Build version"
+        "name": "Версия сборки"
       },
       "server_name": {
-        "name": "Server name"
+        "name": "Имя сервера"
       },
       "server_platform": {
-        "name": "Platform"
+        "name": "Платформа"
       },
       "server_database_vendor": {
-        "name": "Database vendor"
+        "name": "Поставщик базы данных"
       },
       "server_sql_edition": {
-        "name": "SQL Server edition"
+        "name": "Редакция SQL Server"
       },
       "server_sql_version": {
-        "name": "SQL Server version"
+        "name": "Версия SQL Server"
       },
       "server_last_poll": {
-        "name": "Last successful poll"
+        "name": "Последний успешный опрос"
       },
       "license_status": {
-        "name": "Status"
+        "name": "Статус"
       },
       "license_edition": {
-        "name": "Edition"
+        "name": "Редакция"
       },
       "license_type": {
-        "name": "Type"
+        "name": "Тип"
       },
       "license_expiration": {
-        "name": "Expiration date"
+        "name": "Дата истечения"
       },
       "license_support_expiration": {
-        "name": "Support expiration date"
+        "name": "Дата истечения поддержки"
       },
       "license_licensed_to": {
-        "name": "Licensed to"
+        "name": "Лицензировано для"
       },
       "license_support_id": {
-        "name": "Support ID"
+        "name": "ID поддержки"
       },
       "license_auto_update": {
-        "name": "Auto update enabled"
+        "name": "Автообновление включено"
       },
       "license_cloud_connect": {
-        "name": "Cloud Connect license"
+        "name": "Лицензия Cloud Connect"
       },
       "repository_type": {
-        "name": "Type"
+        "name": "Тип"
       },
       "repository_capacity": {
-        "name": "Capacity"
+        "name": "Емкость"
       },
       "repository_free_space": {
-        "name": "Free space"
+        "name": "Свободное место"
       },
       "repository_used_space": {
-        "name": "Used space"
+        "name": "Использованное место"
       },
       "sobr_description": {
-        "name": "Description"
+        "name": "Описание"
       },
       "sobr_extent_count": {
-        "name": "Extent count"
+        "name": "Количество экстентов"
       }
     },
     "binary_sensor": {
       "server_health_ok": {
-        "name": "Health OK"
+        "name": "Работоспособность в порядке"
       },
       "server_connected": {
-        "name": "Connected"
+        "name": "Подключен"
       },
       "repository_online": {
-        "name": "Online"
+        "name": "В сети"
       },
       "sobr_extent_sealed": {
-        "name": "{extent_name} sealed mode"
+        "name": "{extent_name} запечатанный режим"
       },
       "sobr_extent_maintenance": {
-        "name": "{extent_name} maintenance mode"
+        "name": "{extent_name} режим обслуживания"
       }
     },
     "button": {
       "repository_rescan": {
-        "name": "Rescan repository"
+        "name": "Пересканировать репозиторий"
       },
       "sobr_extent_enable_sealed": {
-        "name": "{extent_name} enable sealed mode"
+        "name": "{extent_name} включить запечатанный режим"
       },
       "sobr_extent_disable_sealed": {
-        "name": "{extent_name} disable sealed mode"
+        "name": "{extent_name} отключить запечатанный режим"
       },
       "sobr_extent_enable_maintenance": {
-        "name": "{extent_name} enable maintenance mode"
+        "name": "{extent_name} включить режим обслуживания"
       },
       "sobr_extent_disable_maintenance": {
-        "name": "{extent_name} disable maintenance mode"
+        "name": "{extent_name} отключить режим обслуживания"
+      },
+      "job_start": {
+        "name": "Запустить"
+      },
+      "job_stop": {
+        "name": "Остановить"
+      },
+      "job_retry": {
+        "name": "Повторить"
+      },
+      "job_enable": {
+        "name": "Включить"
+      },
+      "job_disable": {
+        "name": "Отключить"
       }
     }
   },
   "exceptions": {
     "connection_error": {
-      "message": "Failed to connect to Veeam server at {host}:{port}"
+      "message": "Не удалось подключиться к серверу Veeam на {host}:{port}"
     },
     "authentication_failed": {
-      "message": "Authentication failed for user {username}"
+      "message": "Аутентификация не удалась для пользователя {username}"
     },
     "api_error": {
-      "message": "Veeam API error: {error}"
+      "message": "Ошибка API Veeam: {error}"
     },
     "repository_rescan_failed": {
-      "message": "Failed to rescan repository {repository_name}: {error}"
+      "message": "Не удалось пересканировать репозиторий {repository_name}: {error}"
     },
     "extent_operation_failed": {
-      "message": "Failed to {operation} for extent {extent_name}: {error}"
+      "message": "Не удалось выполнить операцию {operation} для экстента {extent_name}: {error}"
+    },
+    "job_start_failed": {
+      "message": "Не удалось запустить задание {job_name}: {error}"
+    },
+    "job_stop_failed": {
+      "message": "Не удалось остановить задание {job_name}: {error}"
+    },
+    "job_retry_failed": {
+      "message": "Не удалось повторить задание {job_name}: {error}"
+    },
+    "job_enable_failed": {
+      "message": "Не удалось включить задание {job_name}: {error}"
+    },
+    "job_disable_failed": {
+      "message": "Не удалось отключить задание {job_name}: {error}"
     },
     "timeout_error": {
-      "message": "Request to Veeam server timed out"
+      "message": "Истекло время ожидания запроса к серверу Veeam"
     },
     "invalid_response": {
-      "message": "Received invalid response from Veeam server"
+      "message": "Получен недействительный ответ от сервера Veeam"
     }
   },
   "selector": {
     "job_status": {
       "options": {
-        "success": "Success",
-        "running": "Running",
-        "failed": "Failed",
-        "warning": "Warning",
-        "unknown": "Unknown"
+        "success": "Успешно",
+        "running": "Выполняется",
+        "failed": "Не удалось",
+        "warning": "Предупреждение",
+        "unknown": "Неизвестно"
       }
     },
     "job_last_result": {
       "options": {
-        "success": "Success",
-        "failed": "Failed",
-        "warning": "Warning",
-        "none": "None"
+        "success": "Успешно",
+        "failed": "Не удалось",
+        "warning": "Предупреждение",
+        "none": "Нет"
       }
     },
     "license_status": {
       "options": {
-        "valid": "Valid",
-        "expired": "Expired",
-        "invalid": "Invalid"
+        "valid": "Действительна",
+        "expired": "Истекла",
+        "invalid": "Недействительна"
       }
     }
   }

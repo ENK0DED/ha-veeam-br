@@ -197,6 +197,21 @@
       },
       "sobr_extent_disable_maintenance": {
         "name": "{extent_name} deshabilitar modo mantenimiento"
+      },
+      "job_start": {
+        "name": "Iniciar"
+      },
+      "job_stop": {
+        "name": "Detener"
+      },
+      "job_retry": {
+        "name": "Reintentar"
+      },
+      "job_enable": {
+        "name": "Habilitar"
+      },
+      "job_disable": {
+        "name": "Deshabilitar"
       }
     }
   },
@@ -215,6 +230,21 @@
     },
     "extent_operation_failed": {
       "message": "Error al {operation} para el extent {extent_name}: {error}"
+    },
+    "job_start_failed": {
+      "message": "Error al iniciar el trabajo {job_name}: {error}"
+    },
+    "job_stop_failed": {
+      "message": "Error al detener el trabajo {job_name}: {error}"
+    },
+    "job_retry_failed": {
+      "message": "Error al reintentar el trabajo {job_name}: {error}"
+    },
+    "job_enable_failed": {
+      "message": "Error al habilitar el trabajo {job_name}: {error}"
+    },
+    "job_disable_failed": {
+      "message": "Error al deshabilitar el trabajo {job_name}: {error}"
     },
     "timeout_error": {
       "message": "La solicitud al servidor Veeam ha excedido el tiempo de espera"

@@ -197,6 +197,21 @@
       },
       "sobr_extent_disable_maintenance": {
         "name": "{extent_name} Wartungsmodus deaktivieren"
+      },
+      "job_start": {
+        "name": "Starten"
+      },
+      "job_stop": {
+        "name": "Stoppen"
+      },
+      "job_retry": {
+        "name": "Wiederholen"
+      },
+      "job_enable": {
+        "name": "Aktivieren"
+      },
+      "job_disable": {
+        "name": "Deaktivieren"
       }
     }
   },
@@ -215,6 +230,21 @@
     },
     "extent_operation_failed": {
       "message": "{operation} für Extent {extent_name} fehlgeschlagen: {error}"
+    },
+    "job_start_failed": {
+      "message": "Fehler beim Starten des Jobs {job_name}: {error}"
+    },
+    "job_stop_failed": {
+      "message": "Fehler beim Stoppen des Jobs {job_name}: {error}"
+    },
+    "job_retry_failed": {
+      "message": "Fehler beim Wiederholen des Jobs {job_name}: {error}"
+    },
+    "job_enable_failed": {
+      "message": "Fehler beim Aktivieren des Jobs {job_name}: {error}"
+    },
+    "job_disable_failed": {
+      "message": "Fehler beim Deaktivieren des Jobs {job_name}: {error}"
     },
     "timeout_error": {
       "message": "Anfrage an Veeam-Server hat Zeitüberschreitung erreicht"

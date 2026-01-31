@@ -13,42 +13,42 @@
           "api_version": "API 版本"
         },
         "data_description": {
-          "host": "Hostname or IP address of the Veeam Backup & Replication server",
-          "port": "REST API port (default: 9419)",
-          "username": "Username with administrator privileges",
-          "password": "Password for the specified user account",
-          "verify_ssl": "Enable SSL certificate verification (disable only for self-signed certificates)",
-          "api_version": "Veeam REST API version to use"
+          "host": "Veeam Backup & Replication 服务器的主机名或 IP 地址",
+          "port": "REST API 端口（默认值：9419）",
+          "username": "具有管理员权限的用户名",
+          "password": "指定用户账户的密码",
+          "verify_ssl": "启用 SSL 证书验证（仅对自签名证书禁用）",
+          "api_version": "要使用的 Veeam REST API 版本"
         }
       },
       "reconfigure": {
-        "title": "Reconfigure Veeam Backup & Replication",
-        "description": "Update the connection details for {host}.",
+        "title": "重新配置 Veeam Backup & Replication",
+        "description": "更新 {host} 的连接详细信息。",
         "data": {
-          "host": "Host",
-          "port": "Port",
-          "username": "Username",
-          "password": "Password",
-          "verify_ssl": "Verify SSL Certificate"
+          "host": "主机",
+          "port": "端口",
+          "username": "用户名",
+          "password": "密码",
+          "verify_ssl": "验证 SSL 证书"
         },
         "data_description": {
-          "host": "Hostname or IP address of the Veeam server",
-          "port": "REST API port",
-          "username": "Administrator username",
-          "password": "User password",
-          "verify_ssl": "Verify SSL certificates"
+          "host": "Veeam 服务器的主机名或 IP 地址",
+          "port": "REST API 端口",
+          "username": "管理员用户名",
+          "password": "用户密码",
+          "verify_ssl": "验证 SSL 证书"
         }
       },
       "reauth_confirm": {
-        "title": "Re-authenticate to Veeam Backup & Replication",
-        "description": "The authentication credentials for {host} are no longer valid. Please enter new credentials.",
+        "title": "重新验证 Veeam Backup & Replication",
+        "description": "{host} 的身份验证凭据不再有效。请输入新的凭据。",
         "data": {
-          "username": "Username",
-          "password": "Password"
+          "username": "用户名",
+          "password": "密码"
         },
         "data_description": {
-          "username": "Administrator username",
-          "password": "User password"
+          "username": "管理员用户名",
+          "password": "用户密码"
         }
       }
     },
@@ -59,7 +59,7 @@
     },
     "abort": {
       "already_configured": "此 Veeam 服务器已配置",
-      "reauth_successful": "Re-authentication was successful"
+      "reauth_successful": "重新验证成功"
     }
   },
   "options": {
@@ -71,7 +71,7 @@
           "api_version": "API 版本"
         },
         "data_description": {
-          "api_version": "Select the Veeam REST API version to use for this integration"
+          "api_version": "选择用于此集成的 Veeam REST API 版本"
         }
       }
     },
@@ -84,168 +84,198 @@
   "entity": {
     "sensor": {
       "job_status": {
-        "name": "Status"
+        "name": "状态"
       },
       "job_type": {
-        "name": "Type"
+        "name": "类型"
       },
       "job_last_run": {
-        "name": "Last run"
+        "name": "上次运行"
       },
       "job_next_run": {
-        "name": "Next run"
+        "name": "下次运行"
       },
       "job_last_result": {
-        "name": "Last result"
+        "name": "上次结果"
       },
       "server_build_version": {
-        "name": "Build version"
+        "name": "构建版本"
       },
       "server_name": {
-        "name": "Server name"
+        "name": "服务器名称"
       },
       "server_platform": {
-        "name": "Platform"
+        "name": "平台"
       },
       "server_database_vendor": {
-        "name": "Database vendor"
+        "name": "数据库供应商"
       },
       "server_sql_edition": {
-        "name": "SQL Server edition"
+        "name": "SQL Server 版本"
       },
       "server_sql_version": {
-        "name": "SQL Server version"
+        "name": "SQL Server 版本号"
       },
       "server_last_poll": {
-        "name": "Last successful poll"
+        "name": "上次成功轮询"
       },
       "license_status": {
-        "name": "Status"
+        "name": "状态"
       },
       "license_edition": {
-        "name": "Edition"
+        "name": "版本"
       },
       "license_type": {
-        "name": "Type"
+        "name": "类型"
       },
       "license_expiration": {
-        "name": "Expiration date"
+        "name": "到期日期"
       },
       "license_support_expiration": {
-        "name": "Support expiration date"
+        "name": "支持到期日期"
       },
       "license_licensed_to": {
-        "name": "Licensed to"
+        "name": "许可给"
       },
       "license_support_id": {
-        "name": "Support ID"
+        "name": "支持 ID"
       },
       "license_auto_update": {
-        "name": "Auto update enabled"
+        "name": "已启用自动更新"
       },
       "license_cloud_connect": {
-        "name": "Cloud Connect license"
+        "name": "Cloud Connect 许可证"
       },
       "repository_type": {
-        "name": "Type"
+        "name": "类型"
       },
       "repository_capacity": {
-        "name": "Capacity"
+        "name": "容量"
       },
       "repository_free_space": {
-        "name": "Free space"
+        "name": "可用空间"
       },
       "repository_used_space": {
-        "name": "Used space"
+        "name": "已用空间"
       },
       "sobr_description": {
-        "name": "Description"
+        "name": "描述"
       },
       "sobr_extent_count": {
-        "name": "Extent count"
+        "name": "扩展区计数"
       }
     },
     "binary_sensor": {
       "server_health_ok": {
-        "name": "Health OK"
+        "name": "健康状况正常"
       },
       "server_connected": {
-        "name": "Connected"
+        "name": "已连接"
       },
       "repository_online": {
-        "name": "Online"
+        "name": "在线"
       },
       "sobr_extent_sealed": {
-        "name": "{extent_name} sealed mode"
+        "name": "{extent_name} 密封模式"
       },
       "sobr_extent_maintenance": {
-        "name": "{extent_name} maintenance mode"
+        "name": "{extent_name} 维护模式"
       }
     },
     "button": {
       "repository_rescan": {
-        "name": "Rescan repository"
+        "name": "重新扫描存储库"
       },
       "sobr_extent_enable_sealed": {
-        "name": "{extent_name} enable sealed mode"
+        "name": "{extent_name} 启用密封模式"
       },
       "sobr_extent_disable_sealed": {
-        "name": "{extent_name} disable sealed mode"
+        "name": "{extent_name} 禁用密封模式"
       },
       "sobr_extent_enable_maintenance": {
-        "name": "{extent_name} enable maintenance mode"
+        "name": "{extent_name} 启用维护模式"
       },
       "sobr_extent_disable_maintenance": {
-        "name": "{extent_name} disable maintenance mode"
+        "name": "{extent_name} 禁用维护模式"
+      },
+      "job_start": {
+        "name": "启动"
+      },
+      "job_stop": {
+        "name": "停止"
+      },
+      "job_retry": {
+        "name": "重试"
+      },
+      "job_enable": {
+        "name": "启用"
+      },
+      "job_disable": {
+        "name": "禁用"
       }
     }
   },
   "exceptions": {
     "connection_error": {
-      "message": "Failed to connect to Veeam server at {host}:{port}"
+      "message": "无法连接到 {host}:{port} 上的 Veeam 服务器"
     },
     "authentication_failed": {
-      "message": "Authentication failed for user {username}"
+      "message": "用户 {username} 的身份验证失败"
     },
     "api_error": {
-      "message": "Veeam API error: {error}"
+      "message": "Veeam API 错误：{error}"
     },
     "repository_rescan_failed": {
-      "message": "Failed to rescan repository {repository_name}: {error}"
+      "message": "重新扫描存储库 {repository_name} 失败：{error}"
     },
     "extent_operation_failed": {
-      "message": "Failed to {operation} for extent {extent_name}: {error}"
+      "message": "扩展区 {extent_name} 的 {operation} 操作失败：{error}"
+    },
+    "job_start_failed": {
+      "message": "启动作业 {job_name} 失败：{error}"
+    },
+    "job_stop_failed": {
+      "message": "停止作业 {job_name} 失败：{error}"
+    },
+    "job_retry_failed": {
+      "message": "重试作业 {job_name} 失败：{error}"
+    },
+    "job_enable_failed": {
+      "message": "启用作业 {job_name} 失败：{error}"
+    },
+    "job_disable_failed": {
+      "message": "禁用作业 {job_name} 失败：{error}"
     },
     "timeout_error": {
-      "message": "Request to Veeam server timed out"
+      "message": "对 Veeam 服务器的请求超时"
     },
     "invalid_response": {
-      "message": "Received invalid response from Veeam server"
+      "message": "从 Veeam 服务器收到无效响应"
     }
   },
   "selector": {
     "job_status": {
       "options": {
-        "success": "Success",
-        "running": "Running",
-        "failed": "Failed",
-        "warning": "Warning",
-        "unknown": "Unknown"
+        "success": "成功",
+        "running": "运行中",
+        "failed": "失败",
+        "warning": "警告",
+        "unknown": "未知"
       }
     },
     "job_last_result": {
       "options": {
-        "success": "Success",
-        "failed": "Failed",
-        "warning": "Warning",
-        "none": "None"
+        "success": "成功",
+        "failed": "失败",
+        "warning": "警告",
+        "none": "无"
       }
     },
     "license_status": {
       "options": {
-        "valid": "Valid",
-        "expired": "Expired",
-        "invalid": "Invalid"
+        "valid": "有效",
+        "expired": "已过期",
+        "invalid": "无效"
       }
     }
   }

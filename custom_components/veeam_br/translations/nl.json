@@ -13,42 +13,42 @@
           "api_version": "API-versie"
         },
         "data_description": {
-          "host": "Hostname or IP address of the Veeam Backup & Replication server",
-          "port": "REST API port (default: 9419)",
-          "username": "Username with administrator privileges",
-          "password": "Password for the specified user account",
-          "verify_ssl": "Enable SSL certificate verification (disable only for self-signed certificates)",
-          "api_version": "Veeam REST API version to use"
+          "host": "Hostnaam of IP-adres van de Veeam Backup & Replication-server",
+          "port": "REST API-poort (standaard: 9419)",
+          "username": "Gebruikersnaam met beheerdersbevoegdheden",
+          "password": "Wachtwoord voor het opgegeven gebruikersaccount",
+          "verify_ssl": "SSL-certificaatverificatie inschakelen (alleen uitschakelen voor zelfondertekende certificaten)",
+          "api_version": "Te gebruiken Veeam REST API-versie"
         }
       },
       "reconfigure": {
-        "title": "Reconfigure Veeam Backup & Replication",
-        "description": "Update the connection details for {host}.",
+        "title": "Veeam Backup & Replication opnieuw configureren",
+        "description": "Werk de verbindingsgegevens bij voor {host}.",
         "data": {
           "host": "Host",
-          "port": "Port",
-          "username": "Username",
-          "password": "Password",
-          "verify_ssl": "Verify SSL Certificate"
+          "port": "Poort",
+          "username": "Gebruikersnaam",
+          "password": "Wachtwoord",
+          "verify_ssl": "SSL-certificaat verifiëren"
         },
         "data_description": {
-          "host": "Hostname or IP address of the Veeam server",
-          "port": "REST API port",
-          "username": "Administrator username",
-          "password": "User password",
-          "verify_ssl": "Verify SSL certificates"
+          "host": "Hostnaam of IP-adres van de Veeam-server",
+          "port": "REST API-poort",
+          "username": "Beheerdersgebruikersnaam",
+          "password": "Gebruikerswachtwoord",
+          "verify_ssl": "SSL-certificaten verifiëren"
         }
       },
       "reauth_confirm": {
-        "title": "Re-authenticate to Veeam Backup & Replication",
-        "description": "The authentication credentials for {host} are no longer valid. Please enter new credentials.",
+        "title": "Opnieuw verifiëren bij Veeam Backup & Replication",
+        "description": "De verificatiegegevens voor {host} zijn niet meer geldig. Voer nieuwe gegevens in.",
         "data": {
-          "username": "Username",
-          "password": "Password"
+          "username": "Gebruikersnaam",
+          "password": "Wachtwoord"
         },
         "data_description": {
-          "username": "Administrator username",
-          "password": "User password"
+          "username": "Beheerdersgebruikersnaam",
+          "password": "Gebruikerswachtwoord"
         }
       }
     },
@@ -59,7 +59,7 @@
     },
     "abort": {
       "already_configured": "Deze Veeam-server is al geconfigureerd",
-      "reauth_successful": "Re-authentication was successful"
+      "reauth_successful": "Herverificatie is gelukt"
     }
   },
   "options": {
@@ -71,7 +71,7 @@
           "api_version": "API-versie"
         },
         "data_description": {
-          "api_version": "Select the Veeam REST API version to use for this integration"
+          "api_version": "Selecteer de Veeam REST API-versie voor deze integratie"
         }
       }
     },
@@ -90,162 +90,192 @@
         "name": "Type"
       },
       "job_last_run": {
-        "name": "Last run"
+        "name": "Laatste uitvoering"
       },
       "job_next_run": {
-        "name": "Next run"
+        "name": "Volgende uitvoering"
       },
       "job_last_result": {
-        "name": "Last result"
+        "name": "Laatste resultaat"
       },
       "server_build_version": {
-        "name": "Build version"
+        "name": "Buildversie"
       },
       "server_name": {
-        "name": "Server name"
+        "name": "Servernaam"
       },
       "server_platform": {
         "name": "Platform"
       },
       "server_database_vendor": {
-        "name": "Database vendor"
+        "name": "Databaseleverancier"
       },
       "server_sql_edition": {
-        "name": "SQL Server edition"
+        "name": "SQL Server-editie"
       },
       "server_sql_version": {
-        "name": "SQL Server version"
+        "name": "SQL Server-versie"
       },
       "server_last_poll": {
-        "name": "Last successful poll"
+        "name": "Laatste succesvolle poll"
       },
       "license_status": {
         "name": "Status"
       },
       "license_edition": {
-        "name": "Edition"
+        "name": "Editie"
       },
       "license_type": {
         "name": "Type"
       },
       "license_expiration": {
-        "name": "Expiration date"
+        "name": "Vervaldatum"
       },
       "license_support_expiration": {
-        "name": "Support expiration date"
+        "name": "Vervaldatum ondersteuning"
       },
       "license_licensed_to": {
-        "name": "Licensed to"
+        "name": "Gelicentieerd aan"
       },
       "license_support_id": {
-        "name": "Support ID"
+        "name": "Ondersteunings-ID"
       },
       "license_auto_update": {
-        "name": "Auto update enabled"
+        "name": "Automatisch bijwerken ingeschakeld"
       },
       "license_cloud_connect": {
-        "name": "Cloud Connect license"
+        "name": "Cloud Connect-licentie"
       },
       "repository_type": {
         "name": "Type"
       },
       "repository_capacity": {
-        "name": "Capacity"
+        "name": "Capaciteit"
       },
       "repository_free_space": {
-        "name": "Free space"
+        "name": "Vrije ruimte"
       },
       "repository_used_space": {
-        "name": "Used space"
+        "name": "Gebruikte ruimte"
       },
       "sobr_description": {
-        "name": "Description"
+        "name": "Beschrijving"
       },
       "sobr_extent_count": {
-        "name": "Extent count"
+        "name": "Aantal extents"
       }
     },
     "binary_sensor": {
       "server_health_ok": {
-        "name": "Health OK"
+        "name": "Status OK"
       },
       "server_connected": {
-        "name": "Connected"
+        "name": "Verbonden"
       },
       "repository_online": {
         "name": "Online"
       },
       "sobr_extent_sealed": {
-        "name": "{extent_name} sealed mode"
+        "name": "{extent_name} verzegelde modus"
       },
       "sobr_extent_maintenance": {
-        "name": "{extent_name} maintenance mode"
+        "name": "{extent_name} onderhoudsmodus"
       }
     },
     "button": {
       "repository_rescan": {
-        "name": "Rescan repository"
+        "name": "Repository opnieuw scannen"
       },
       "sobr_extent_enable_sealed": {
-        "name": "{extent_name} enable sealed mode"
+        "name": "{extent_name} verzegelde modus inschakelen"
       },
       "sobr_extent_disable_sealed": {
-        "name": "{extent_name} disable sealed mode"
+        "name": "{extent_name} verzegelde modus uitschakelen"
       },
       "sobr_extent_enable_maintenance": {
-        "name": "{extent_name} enable maintenance mode"
+        "name": "{extent_name} onderhoudsmodus inschakelen"
       },
       "sobr_extent_disable_maintenance": {
-        "name": "{extent_name} disable maintenance mode"
+        "name": "{extent_name} onderhoudsmodus uitschakelen"
+      },
+      "job_start": {
+        "name": "Starten"
+      },
+      "job_stop": {
+        "name": "Stoppen"
+      },
+      "job_retry": {
+        "name": "Opnieuw proberen"
+      },
+      "job_enable": {
+        "name": "Inschakelen"
+      },
+      "job_disable": {
+        "name": "Uitschakelen"
       }
     }
   },
   "exceptions": {
     "connection_error": {
-      "message": "Failed to connect to Veeam server at {host}:{port}"
+      "message": "Kan geen verbinding maken met Veeam-server op {host}:{port}"
     },
     "authentication_failed": {
-      "message": "Authentication failed for user {username}"
+      "message": "Verificatie mislukt voor gebruiker {username}"
     },
     "api_error": {
-      "message": "Veeam API error: {error}"
+      "message": "Veeam API-fout: {error}"
     },
     "repository_rescan_failed": {
-      "message": "Failed to rescan repository {repository_name}: {error}"
+      "message": "Opnieuw scannen van repository {repository_name} mislukt: {error}"
     },
     "extent_operation_failed": {
-      "message": "Failed to {operation} for extent {extent_name}: {error}"
+      "message": "Bewerking {operation} voor extent {extent_name} mislukt: {error}"
+    },
+    "job_start_failed": {
+      "message": "Starten van job {job_name} mislukt: {error}"
+    },
+    "job_stop_failed": {
+      "message": "Stoppen van job {job_name} mislukt: {error}"
+    },
+    "job_retry_failed": {
+      "message": "Opnieuw proberen van job {job_name} mislukt: {error}"
+    },
+    "job_enable_failed": {
+      "message": "Inschakelen van job {job_name} mislukt: {error}"
+    },
+    "job_disable_failed": {
+      "message": "Uitschakelen van job {job_name} mislukt: {error}"
     },
     "timeout_error": {
-      "message": "Request to Veeam server timed out"
+      "message": "Time-out bij verzoek aan Veeam-server"
     },
     "invalid_response": {
-      "message": "Received invalid response from Veeam server"
+      "message": "Ongeldige reactie ontvangen van Veeam-server"
     }
   },
   "selector": {
     "job_status": {
       "options": {
-        "success": "Success",
-        "running": "Running",
-        "failed": "Failed",
-        "warning": "Warning",
-        "unknown": "Unknown"
+        "success": "Geslaagd",
+        "running": "Actief",
+        "failed": "Mislukt",
+        "warning": "Waarschuwing",
+        "unknown": "Onbekend"
       }
     },
     "job_last_result": {
       "options": {
-        "success": "Success",
-        "failed": "Failed",
-        "warning": "Warning",
-        "none": "None"
+        "success": "Geslaagd",
+        "failed": "Mislukt",
+        "warning": "Waarschuwing",
+        "none": "Geen"
       }
     },
     "license_status": {
       "options": {
-        "valid": "Valid",
-        "expired": "Expired",
-        "invalid": "Invalid"
+        "valid": "Geldig",
+        "expired": "Verlopen",
+        "invalid": "Ongeldig"
       }
     }
   }

@@ -197,6 +197,21 @@
       },
       "sobr_extent_disable_maintenance": {
         "name": "{extent_name} désactiver le mode maintenance"
+      },
+      "job_start": {
+        "name": "Démarrer"
+      },
+      "job_stop": {
+        "name": "Arrêter"
+      },
+      "job_retry": {
+        "name": "Réessayer"
+      },
+      "job_enable": {
+        "name": "Activer"
+      },
+      "job_disable": {
+        "name": "Désactiver"
       }
     }
   },
@@ -215,6 +230,21 @@
     },
     "extent_operation_failed": {
       "message": "Échec de {operation} pour l'extent {extent_name} : {error}"
+    },
+    "job_start_failed": {
+      "message": "Échec du démarrage du travail {job_name} : {error}"
+    },
+    "job_stop_failed": {
+      "message": "Échec de l'arrêt du travail {job_name} : {error}"
+    },
+    "job_retry_failed": {
+      "message": "Échec de la nouvelle tentative du travail {job_name} : {error}"
+    },
+    "job_enable_failed": {
+      "message": "Échec de l'activation du travail {job_name} : {error}"
+    },
+    "job_disable_failed": {
+      "message": "Échec de la désactivation du travail {job_name} : {error}"
     },
     "timeout_error": {
       "message": "La demande au serveur Veeam a expiré"

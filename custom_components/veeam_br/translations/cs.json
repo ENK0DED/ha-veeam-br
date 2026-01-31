@@ -197,6 +197,21 @@
       },
       "sobr_extent_disable_maintenance": {
         "name": "{extent_name} zakázat režim údržby"
+      },
+      "job_start": {
+        "name": "Spustit"
+      },
+      "job_stop": {
+        "name": "Zastavit"
+      },
+      "job_retry": {
+        "name": "Opakovat"
+      },
+      "job_enable": {
+        "name": "Povolit"
+      },
+      "job_disable": {
+        "name": "Zakázat"
       }
     }
   },
@@ -215,6 +230,21 @@
     },
     "extent_operation_failed": {
       "message": "Operace {operation} pro rozsah {extent_name} se nezdařila: {error}"
+    },
+    "job_start_failed": {
+      "message": "Spuštění úlohy {job_name} se nezdařilo: {error}"
+    },
+    "job_stop_failed": {
+      "message": "Zastavení úlohy {job_name} se nezdařilo: {error}"
+    },
+    "job_retry_failed": {
+      "message": "Opakování úlohy {job_name} se nezdařilo: {error}"
+    },
+    "job_enable_failed": {
+      "message": "Povolení úlohy {job_name} se nezdařilo: {error}"
+    },
+    "job_disable_failed": {
+      "message": "Zakázání úlohy {job_name} se nezdařilo: {error}"
     },
     "timeout_error": {
       "message": "Vypršel časový limit požadavku na server Veeam"
