@@ -567,6 +567,33 @@ class VeeamJobButtonBase(CoordinatorEntity, ButtonEntity):
             "model": "Backup Job",
         }
 
+    def _get_api_module(self) -> str:
+        """Get the API module name based on the configured API version."""
+        api_version = self._config_entry.options.get(
+            CONF_API_VERSION,
+            self._config_entry.data.get(CONF_API_VERSION, DEFAULT_API_VERSION),
+        )
+        return API_VERSIONS.get(api_version, "v1_3_rev1")
+
+    def _import_spec_model(self, spec_name: str):
+        """Import a spec model from the veeam_br library.
+
+        Args:
+            spec_name: Name of the spec model (e.g., 'job_start_spec', 'job_stop_spec')
+
+        Returns:
+            The spec model class
+
+        Raises:
+            ImportError: If the model cannot be imported
+            AttributeError: If the model class cannot be found
+        """
+        api_module = self._get_api_module()
+        models_module = importlib.import_module(f"veeam_br.{api_module}.models.{spec_name}")
+        # Convert snake_case to PascalCase for class name
+        class_name = "".join(word.capitalize() for word in spec_name.split("_"))
+        return getattr(models_module, class_name)
+
 
 class VeeamJobStartButton(VeeamJobButtonBase):
     """Button to start a Veeam job."""
@@ -584,45 +611,31 @@ class VeeamJobStartButton(VeeamJobButtonBase):
 
     async def async_press(self) -> None:
         """Handle the button press to start the job."""
+        # Import the body model for the start request
         try:
-            # Get the API version
-            api_version = self._config_entry.options.get(
-                CONF_API_VERSION,
-                self._config_entry.data.get(CONF_API_VERSION, DEFAULT_API_VERSION),
+            JobStartSpec = self._import_spec_model("job_start_spec")
+            body = JobStartSpec(perform_active_full=False)
+        except (ImportError, AttributeError) as e:
+            _LOGGER.error("Failed to import JobStartSpec: %s. Cannot start job.", e)
+            return
+
+        # Call the start endpoint using VeeamClient
+        try:
+            await self._veeam_client.call(
+                self._veeam_client.api("jobs").start_job,
+                id=self._job_id,
+                body=body,
             )
-            api_module = API_VERSIONS.get(api_version, "v1_3_rev1")
-
-            # Import the body model for the start request
-            try:
-                models_module = importlib.import_module(
-                    f"veeam_br.{api_module}.models.job_start_spec"
-                )
-                JobStartSpec = models_module.JobStartSpec
-                body = JobStartSpec(perform_active_full=False)
-            except (ImportError, AttributeError) as e:
-                _LOGGER.error("Failed to import JobStartSpec: %s. Cannot start job.", e)
-                return
-
-            # Call the start endpoint using VeeamClient
-            try:
-                await self._veeam_client.call(
-                    self._veeam_client.api("jobs").start_job,
-                    id=self._job_id,
-                    body=body,
-                )
-                _LOGGER.info("Successfully started job: %s", self._job_name)
-                # Request coordinator update to refresh job state
-                await self.coordinator.async_request_refresh()
-            except Exception as call_err:
-                _LOGGER.error(
-                    "Failed to start job %s: %s",
-                    self._job_name,
-                    call_err,
-                )
-                raise
-
-        except Exception as err:
-            _LOGGER.error("Error starting job %s: %s", self._job_name, err)
+            _LOGGER.info("Successfully started job: %s", self._job_name)
+            # Request coordinator update to refresh job state
+            await self.coordinator.async_request_refresh()
+        except Exception as call_err:
+            _LOGGER.error(
+                "Failed to start job %s: %s",
+                self._job_name,
+                call_err,
+            )
+            raise
 
 
 class VeeamJobStopButton(VeeamJobButtonBase):
@@ -641,46 +654,32 @@ class VeeamJobStopButton(VeeamJobButtonBase):
 
     async def async_press(self) -> None:
         """Handle the button press to stop the job."""
+        # Import the body model for the stop request
         try:
-            # Get the API version
-            api_version = self._config_entry.options.get(
-                CONF_API_VERSION,
-                self._config_entry.data.get(CONF_API_VERSION, DEFAULT_API_VERSION),
+            JobStopSpec = self._import_spec_model("job_stop_spec")
+            # JobStopSpec typically has no required parameters
+            body = JobStopSpec()
+        except (ImportError, AttributeError) as e:
+            _LOGGER.error("Failed to import JobStopSpec: %s. Cannot stop job.", e)
+            return
+
+        # Call the stop endpoint using VeeamClient
+        try:
+            await self._veeam_client.call(
+                self._veeam_client.api("jobs").stop_job,
+                id=self._job_id,
+                body=body,
             )
-            api_module = API_VERSIONS.get(api_version, "v1_3_rev1")
-
-            # Import the body model for the stop request
-            try:
-                models_module = importlib.import_module(
-                    f"veeam_br.{api_module}.models.job_stop_spec"
-                )
-                JobStopSpec = models_module.JobStopSpec
-                # JobStopSpec typically has no required parameters
-                body = JobStopSpec()
-            except (ImportError, AttributeError) as e:
-                _LOGGER.error("Failed to import JobStopSpec: %s. Cannot stop job.", e)
-                return
-
-            # Call the stop endpoint using VeeamClient
-            try:
-                await self._veeam_client.call(
-                    self._veeam_client.api("jobs").stop_job,
-                    id=self._job_id,
-                    body=body,
-                )
-                _LOGGER.info("Successfully stopped job: %s", self._job_name)
-                # Request coordinator update to refresh job state
-                await self.coordinator.async_request_refresh()
-            except Exception as call_err:
-                _LOGGER.error(
-                    "Failed to stop job %s: %s",
-                    self._job_name,
-                    call_err,
-                )
-                raise
-
-        except Exception as err:
-            _LOGGER.error("Error stopping job %s: %s", self._job_name, err)
+            _LOGGER.info("Successfully stopped job: %s", self._job_name)
+            # Request coordinator update to refresh job state
+            await self.coordinator.async_request_refresh()
+        except Exception as call_err:
+            _LOGGER.error(
+                "Failed to stop job %s: %s",
+                self._job_name,
+                call_err,
+            )
+            raise
 
 
 class VeeamJobRetryButton(VeeamJobButtonBase):
@@ -699,43 +698,29 @@ class VeeamJobRetryButton(VeeamJobButtonBase):
 
     async def async_press(self) -> None:
         """Handle the button press to retry the job."""
+        # Import the body model for the retry request
         try:
-            # Get the API version
-            api_version = self._config_entry.options.get(
-                CONF_API_VERSION,
-                self._config_entry.data.get(CONF_API_VERSION, DEFAULT_API_VERSION),
+            JobRetrySpec = self._import_spec_model("job_retry_spec")
+            # JobRetrySpec typically has no required parameters
+            body = JobRetrySpec()
+        except (ImportError, AttributeError) as e:
+            _LOGGER.error("Failed to import JobRetrySpec: %s. Cannot retry job.", e)
+            return
+
+        # Call the retry endpoint using VeeamClient
+        try:
+            await self._veeam_client.call(
+                self._veeam_client.api("jobs").retry_job,
+                id=self._job_id,
+                body=body,
             )
-            api_module = API_VERSIONS.get(api_version, "v1_3_rev1")
-
-            # Import the body model for the retry request
-            try:
-                models_module = importlib.import_module(
-                    f"veeam_br.{api_module}.models.job_retry_spec"
-                )
-                JobRetrySpec = models_module.JobRetrySpec
-                # JobRetrySpec typically has no required parameters
-                body = JobRetrySpec()
-            except (ImportError, AttributeError) as e:
-                _LOGGER.error("Failed to import JobRetrySpec: %s. Cannot retry job.", e)
-                return
-
-            # Call the retry endpoint using VeeamClient
-            try:
-                await self._veeam_client.call(
-                    self._veeam_client.api("jobs").retry_job,
-                    id=self._job_id,
-                    body=body,
-                )
-                _LOGGER.info("Successfully retried job: %s", self._job_name)
-                # Request coordinator update to refresh job state
-                await self.coordinator.async_request_refresh()
-            except Exception as call_err:
-                _LOGGER.error(
-                    "Failed to retry job %s: %s",
-                    self._job_name,
-                    call_err,
-                )
-                raise
-
-        except Exception as err:
-            _LOGGER.error("Error retrying job %s: %s", self._job_name, err)
+            _LOGGER.info("Successfully retried job: %s", self._job_name)
+            # Request coordinator update to refresh job state
+            await self.coordinator.async_request_refresh()
+        except Exception as call_err:
+            _LOGGER.error(
+                "Failed to retry job %s: %s",
+                self._job_name,
+                call_err,
+            )
+            raise
