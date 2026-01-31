@@ -11,6 +11,44 @@
           "password": "Пароль",
           "verify_ssl": "Проверять SSL-сертификат",
           "api_version": "Версия API"
+        },
+        "data_description": {
+          "host": "Имя хоста или IP-адрес сервера Veeam Backup & Replication",
+          "port": "Порт REST API (по умолчанию: 9419)",
+          "username": "Имя пользователя с правами администратора",
+          "password": "Пароль для указанной учетной записи",
+          "verify_ssl": "Включить проверку SSL-сертификата (отключайте только для самоподписанных сертификатов)",
+          "api_version": "Версия REST API Veeam для использования"
+        }
+      },
+      "reconfigure": {
+        "title": "Переконфигурировать Veeam Backup & Replication",
+        "description": "Обновите данные подключения для {host}.",
+        "data": {
+          "host": "Хост",
+          "port": "Порт",
+          "username": "Имя пользователя",
+          "password": "Пароль",
+          "verify_ssl": "Проверять SSL-сертификат"
+        },
+        "data_description": {
+          "host": "Имя хоста или IP-адрес сервера Veeam",
+          "port": "Порт REST API",
+          "username": "Имя пользователя администратора",
+          "password": "Пароль пользователя",
+          "verify_ssl": "Проверять SSL-сертификаты"
+        }
+      },
+      "reauth_confirm": {
+        "title": "Повторная аутентификация в Veeam Backup & Replication",
+        "description": "Учетные данные для {host} больше не действительны. Введите новые учетные данные.",
+        "data": {
+          "username": "Имя пользователя",
+          "password": "Пароль"
+        },
+        "data_description": {
+          "username": "Имя пользователя администратора",
+          "password": "Пароль пользователя"
         }
       }
     },
@@ -20,7 +58,8 @@
       "unknown": "Произошла непредвиденная ошибка"
     },
     "abort": {
-      "already_configured": "Этот сервер Veeam уже настроен"
+      "already_configured": "Этот сервер Veeam уже настроен",
+      "reauth_successful": "Повторная аутентификация прошла успешно"
     }
   },
   "options": {
@@ -30,6 +69,9 @@
         "description": "Настройте параметры интеграции Veeam Backup & Replication.",
         "data": {
           "api_version": "Версия API"
+        },
+        "data_description": {
+          "api_version": "Выберите версию REST API Veeam для этой интеграции"
         }
       }
     },
@@ -37,6 +79,204 @@
       "cannot_connect": "Не удалось подключиться к серверу Veeam",
       "invalid_auth": "Неверные учетные данные",
       "unknown": "Произошла непредвиденная ошибка"
+    }
+  },
+  "entity": {
+    "sensor": {
+      "job_status": {
+        "name": "Статус"
+      },
+      "job_type": {
+        "name": "Тип"
+      },
+      "job_last_run": {
+        "name": "Последний запуск"
+      },
+      "job_next_run": {
+        "name": "Следующий запуск"
+      },
+      "job_last_result": {
+        "name": "Последний результат"
+      },
+      "server_build_version": {
+        "name": "Версия сборки"
+      },
+      "server_name": {
+        "name": "Имя сервера"
+      },
+      "server_platform": {
+        "name": "Платформа"
+      },
+      "server_database_vendor": {
+        "name": "Поставщик базы данных"
+      },
+      "server_sql_edition": {
+        "name": "Редакция SQL Server"
+      },
+      "server_sql_version": {
+        "name": "Версия SQL Server"
+      },
+      "server_last_poll": {
+        "name": "Последний успешный опрос"
+      },
+      "license_status": {
+        "name": "Статус"
+      },
+      "license_edition": {
+        "name": "Редакция"
+      },
+      "license_type": {
+        "name": "Тип"
+      },
+      "license_expiration": {
+        "name": "Дата истечения"
+      },
+      "license_support_expiration": {
+        "name": "Дата истечения поддержки"
+      },
+      "license_licensed_to": {
+        "name": "Лицензировано для"
+      },
+      "license_support_id": {
+        "name": "ID поддержки"
+      },
+      "license_auto_update": {
+        "name": "Автообновление включено"
+      },
+      "license_cloud_connect": {
+        "name": "Лицензия Cloud Connect"
+      },
+      "repository_type": {
+        "name": "Тип"
+      },
+      "repository_capacity": {
+        "name": "Емкость"
+      },
+      "repository_free_space": {
+        "name": "Свободное место"
+      },
+      "repository_used_space": {
+        "name": "Использованное место"
+      },
+      "sobr_description": {
+        "name": "Описание"
+      },
+      "sobr_extent_count": {
+        "name": "Количество экстентов"
+      }
+    },
+    "binary_sensor": {
+      "server_health_ok": {
+        "name": "Работоспособность в порядке"
+      },
+      "server_connected": {
+        "name": "Подключен"
+      },
+      "repository_online": {
+        "name": "В сети"
+      },
+      "sobr_extent_sealed": {
+        "name": "{extent_name} запечатанный режим"
+      },
+      "sobr_extent_maintenance": {
+        "name": "{extent_name} режим обслуживания"
+      }
+    },
+    "button": {
+      "repository_rescan": {
+        "name": "Пересканировать репозиторий"
+      },
+      "sobr_extent_enable_sealed": {
+        "name": "{extent_name} включить запечатанный режим"
+      },
+      "sobr_extent_disable_sealed": {
+        "name": "{extent_name} отключить запечатанный режим"
+      },
+      "sobr_extent_enable_maintenance": {
+        "name": "{extent_name} включить режим обслуживания"
+      },
+      "sobr_extent_disable_maintenance": {
+        "name": "{extent_name} отключить режим обслуживания"
+      },
+      "job_start": {
+        "name": "Запустить"
+      },
+      "job_stop": {
+        "name": "Остановить"
+      },
+      "job_retry": {
+        "name": "Повторить"
+      },
+      "job_enable": {
+        "name": "Включить"
+      },
+      "job_disable": {
+        "name": "Отключить"
+      }
+    }
+  },
+  "exceptions": {
+    "connection_error": {
+      "message": "Не удалось подключиться к серверу Veeam на {host}:{port}"
+    },
+    "authentication_failed": {
+      "message": "Аутентификация не удалась для пользователя {username}"
+    },
+    "api_error": {
+      "message": "Ошибка API Veeam: {error}"
+    },
+    "repository_rescan_failed": {
+      "message": "Не удалось пересканировать репозиторий {repository_name}: {error}"
+    },
+    "extent_operation_failed": {
+      "message": "Не удалось выполнить операцию {operation} для экстента {extent_name}: {error}"
+    },
+    "job_start_failed": {
+      "message": "Не удалось запустить задание {job_name}: {error}"
+    },
+    "job_stop_failed": {
+      "message": "Не удалось остановить задание {job_name}: {error}"
+    },
+    "job_retry_failed": {
+      "message": "Не удалось повторить задание {job_name}: {error}"
+    },
+    "job_enable_failed": {
+      "message": "Не удалось включить задание {job_name}: {error}"
+    },
+    "job_disable_failed": {
+      "message": "Не удалось отключить задание {job_name}: {error}"
+    },
+    "timeout_error": {
+      "message": "Истекло время ожидания запроса к серверу Veeam"
+    },
+    "invalid_response": {
+      "message": "Получен недействительный ответ от сервера Veeam"
+    }
+  },
+  "selector": {
+    "job_status": {
+      "options": {
+        "success": "Успешно",
+        "running": "Выполняется",
+        "failed": "Не удалось",
+        "warning": "Предупреждение",
+        "unknown": "Неизвестно"
+      }
+    },
+    "job_last_result": {
+      "options": {
+        "success": "Успешно",
+        "failed": "Не удалось",
+        "warning": "Предупреждение",
+        "none": "Нет"
+      }
+    },
+    "license_status": {
+      "options": {
+        "valid": "Действительна",
+        "expired": "Истекла",
+        "invalid": "Недействительна"
+      }
     }
   }
 }

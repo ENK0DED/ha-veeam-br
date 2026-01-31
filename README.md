@@ -50,6 +50,21 @@ Have [HACS](https://hacs.xyz/) installed, this will allow you to update easily.
 
 ## Configuration
 
+### Configuration Parameters
+
+The integration supports the following configuration options:
+
+#### Required Parameters
+- **Host**: Your Veeam Backup & Replication server hostname or IP address
+- **Port**: REST API port (default: 9419)
+- **Username**: Account with administrator privileges on the Veeam server
+- **Password**: Password for the specified user account
+
+#### Optional Parameters
+- **Verify SSL**: Enable/disable SSL certificate verification (default: enabled)
+  - Disable only if using self-signed certificates in a trusted environment
+- **API Version**: Select the Veeam REST API version to use (configured via integration options)
+
 ### Via UI (Recommended)
 
 1. Go to **Settings** → **Devices & Services**
@@ -62,6 +77,40 @@ Have [HACS](https://hacs.xyz/) installed, this will allow you to update easily.
    - **Password**: Veeam server password
    - **Verify SSL**: Whether to verify SSL certificates (recommended: enabled)
 5. Click **Submit**
+
+### Reconfiguration
+
+To update the integration settings:
+
+1. Go to **Settings** → **Devices & Services**
+2. Find the **Veeam Backup & Replication** integration
+3. Click the three dots menu (⋮) and select **Reconfigure**
+4. Update any settings as needed
+5. Click **Submit**
+
+### Re-authentication
+
+If credentials expire or change:
+
+1. Home Assistant will automatically prompt for re-authentication
+2. Enter the new **Username** and **Password**
+3. Click **Submit**
+
+The integration will reconnect without losing any device or entity configurations.
+
+## Data Updates
+
+The integration polls the Veeam Backup & Replication server every **60 seconds** to retrieve:
+- Job status and statistics
+- Repository information and capacity
+- Server information and health status
+- License details and expiration dates
+
+**Update Behavior:**
+- **New jobs/repositories**: Automatically detected and added as new devices
+- **Status changes**: Reflected within the next polling cycle (60 seconds)
+- **Failed connections**: Integration marks entities as unavailable and logs the error
+- **Connection recovery**: Entities automatically become available when connection restored
 
 ## Entities
 
@@ -127,6 +176,104 @@ automation:
             {% endfor %}
             {{ ns.jobs | join('\n') if ns.jobs else 'No Veeam backup jobs found.' }}
 ```
+
+## Removal
+
+To remove the integration from Home Assistant:
+
+1. Go to **Settings** → **Devices & Services**
+2. Find the **Veeam Backup & Replication** integration
+3. Click the three dots menu (⋮) and select **Delete**
+4. Confirm the deletion
+
+All devices and entities associated with this integration will be removed.
+
+## Troubleshooting
+
+### Connection Issues
+
+**Problem**: Integration fails to connect to Veeam server
+
+**Solutions**:
+- Verify the Veeam server is running and accessible from Home Assistant
+- Check that the REST API is enabled on the Veeam server
+- Confirm the hostname/IP and port (default: 9419) are correct
+- Ensure firewall rules allow traffic on port 9419
+- Try disabling SSL verification if using self-signed certificates
+
+### Authentication Failures
+
+**Problem**: Invalid credentials error during setup or re-authentication
+
+**Solutions**:
+- Verify the username and password are correct
+- Ensure the account has administrator privileges on the Veeam server
+- Check if account is locked or password has expired
+- Try logging in to the Veeam console with the same credentials
+
+### Missing Entities
+
+**Problem**: Some jobs or repositories don't appear as entities
+
+**Solutions**:
+- Wait for the next polling cycle (60 seconds)
+- Restart Home Assistant to force a full refresh
+- Check the Home Assistant logs for API errors
+- Verify the jobs/repositories exist in Veeam console
+
+### Entities Unavailable
+
+**Problem**: Entities show as "unavailable"
+
+**Solutions**:
+- Check network connectivity to the Veeam server
+- Review Home Assistant logs for connection errors
+- Verify the Veeam server and REST API are running
+- Try re-authenticating the integration
+
+### High API Load
+
+**Problem**: Veeam server experiencing high API load
+
+**Solutions**:
+- The integration uses `PARALLEL_UPDATES = 1` to limit concurrent requests
+- Polling interval is set to 60 seconds to balance freshness and load
+- Consider adjusting via code if needed for very large deployments
+
+## Known Limitations
+
+- **Veeam Community Edition**: Not supported (lacks REST API)
+- **API Version Compatibility**: Requires Veeam B&R 11.0 or newer
+- **Stale Devices**: Deleted jobs/repositories remain as devices until manual removal (planned enhancement)
+- **Large Deployments**: Polling 100+ jobs may take several seconds per cycle
+- **Real-time Updates**: Changes reflected every 60 seconds, not immediately
+- **SSL Certificates**: Self-signed certificates require SSL verification to be disabled
+
+## Supported Devices & Functions
+
+### Supported Veeam Objects
+
+The integration monitors the following Veeam objects:
+
+- ✅ **Backup Jobs** - All job types (Backup, Replica, Copy, etc.)
+- ✅ **Repositories** - Standard backup repositories
+- ✅ **Scale-Out Repositories** - SOBR and extents
+- ✅ **Server Information** - Veeam server details
+- ✅ **License Information** - License status and expiration
+
+### Supported Entities
+
+- **Sensors**: Status, type, timestamps, capacity, statistics
+- **Binary Sensors**: Online/offline, connectivity, update available
+- **Buttons**: Repository rescan, extent maintenance/sealed mode
+
+### Unsupported (Future Enhancements)
+
+- ⏳ Tape libraries and media
+- ⏳ Cloud repositories
+- ⏳ SureBackup jobs
+- ⏳ Instant VM Recovery sessions
+- ⏳ Service actions (start/stop jobs)
 
 ## Support
 

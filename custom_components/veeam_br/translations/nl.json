@@ -11,6 +11,44 @@
           "password": "Wachtwoord",
           "verify_ssl": "SSL-certificaat verifiëren",
           "api_version": "API-versie"
+        },
+        "data_description": {
+          "host": "Hostnaam of IP-adres van de Veeam Backup & Replication-server",
+          "port": "REST API-poort (standaard: 9419)",
+          "username": "Gebruikersnaam met beheerdersbevoegdheden",
+          "password": "Wachtwoord voor het opgegeven gebruikersaccount",
+          "verify_ssl": "SSL-certificaatverificatie inschakelen (alleen uitschakelen voor zelfondertekende certificaten)",
+          "api_version": "Te gebruiken Veeam REST API-versie"
+        }
+      },
+      "reconfigure": {
+        "title": "Veeam Backup & Replication opnieuw configureren",
+        "description": "Werk de verbindingsgegevens bij voor {host}.",
+        "data": {
+          "host": "Host",
+          "port": "Poort",
+          "username": "Gebruikersnaam",
+          "password": "Wachtwoord",
+          "verify_ssl": "SSL-certificaat verifiëren"
+        },
+        "data_description": {
+          "host": "Hostnaam of IP-adres van de Veeam-server",
+          "port": "REST API-poort",
+          "username": "Beheerdersgebruikersnaam",
+          "password": "Gebruikerswachtwoord",
+          "verify_ssl": "SSL-certificaten verifiëren"
+        }
+      },
+      "reauth_confirm": {
+        "title": "Opnieuw verifiëren bij Veeam Backup & Replication",
+        "description": "De verificatiegegevens voor {host} zijn niet meer geldig. Voer nieuwe gegevens in.",
+        "data": {
+          "username": "Gebruikersnaam",
+          "password": "Wachtwoord"
+        },
+        "data_description": {
+          "username": "Beheerdersgebruikersnaam",
+          "password": "Gebruikerswachtwoord"
         }
       }
     },
@@ -20,7 +58,8 @@
       "unknown": "Er is een onverwachte fout opgetreden"
     },
     "abort": {
-      "already_configured": "Deze Veeam-server is al geconfigureerd"
+      "already_configured": "Deze Veeam-server is al geconfigureerd",
+      "reauth_successful": "Herverificatie is gelukt"
     }
   },
   "options": {
@@ -30,6 +69,9 @@
         "description": "Configureer de instellingen voor de Veeam Backup & Replication-integratie.",
         "data": {
           "api_version": "API-versie"
+        },
+        "data_description": {
+          "api_version": "Selecteer de Veeam REST API-versie voor deze integratie"
         }
       }
     },
@@ -37,6 +79,204 @@
       "cannot_connect": "Kan geen verbinding maken met de Veeam-server",
       "invalid_auth": "Ongeldige authenticatiegegevens",
       "unknown": "Er is een onverwachte fout opgetreden"
+    }
+  },
+  "entity": {
+    "sensor": {
+      "job_status": {
+        "name": "Status"
+      },
+      "job_type": {
+        "name": "Type"
+      },
+      "job_last_run": {
+        "name": "Laatste uitvoering"
+      },
+      "job_next_run": {
+        "name": "Volgende uitvoering"
+      },
+      "job_last_result": {
+        "name": "Laatste resultaat"
+      },
+      "server_build_version": {
+        "name": "Buildversie"
+      },
+      "server_name": {
+        "name": "Servernaam"
+      },
+      "server_platform": {
+        "name": "Platform"
+      },
+      "server_database_vendor": {
+        "name": "Databaseleverancier"
+      },
+      "server_sql_edition": {
+        "name": "SQL Server-editie"
+      },
+      "server_sql_version": {
+        "name": "SQL Server-versie"
+      },
+      "server_last_poll": {
+        "name": "Laatste succesvolle poll"
+      },
+      "license_status": {
+        "name": "Status"
+      },
+      "license_edition": {
+        "name": "Editie"
+      },
+      "license_type": {
+        "name": "Type"
+      },
+      "license_expiration": {
+        "name": "Vervaldatum"
+      },
+      "license_support_expiration": {
+        "name": "Vervaldatum ondersteuning"
+      },
+      "license_licensed_to": {
+        "name": "Gelicentieerd aan"
+      },
+      "license_support_id": {
+        "name": "Ondersteunings-ID"
+      },
+      "license_auto_update": {
+        "name": "Automatisch bijwerken ingeschakeld"
+      },
+      "license_cloud_connect": {
+        "name": "Cloud Connect-licentie"
+      },
+      "repository_type": {
+        "name": "Type"
+      },
+      "repository_capacity": {
+        "name": "Capaciteit"
+      },
+      "repository_free_space": {
+        "name": "Vrije ruimte"
+      },
+      "repository_used_space": {
+        "name": "Gebruikte ruimte"
+      },
+      "sobr_description": {
+        "name": "Beschrijving"
+      },
+      "sobr_extent_count": {
+        "name": "Aantal extents"
+      }
+    },
+    "binary_sensor": {
+      "server_health_ok": {
+        "name": "Status OK"
+      },
+      "server_connected": {
+        "name": "Verbonden"
+      },
+      "repository_online": {
+        "name": "Online"
+      },
+      "sobr_extent_sealed": {
+        "name": "{extent_name} verzegelde modus"
+      },
+      "sobr_extent_maintenance": {
+        "name": "{extent_name} onderhoudsmodus"
+      }
+    },
+    "button": {
+      "repository_rescan": {
+        "name": "Repository opnieuw scannen"
+      },
+      "sobr_extent_enable_sealed": {
+        "name": "{extent_name} verzegelde modus inschakelen"
+      },
+      "sobr_extent_disable_sealed": {
+        "name": "{extent_name} verzegelde modus uitschakelen"
+      },
+      "sobr_extent_enable_maintenance": {
+        "name": "{extent_name} onderhoudsmodus inschakelen"
+      },
+      "sobr_extent_disable_maintenance": {
+        "name": "{extent_name} onderhoudsmodus uitschakelen"
+      },
+      "job_start": {
+        "name": "Starten"
+      },
+      "job_stop": {
+        "name": "Stoppen"
+      },
+      "job_retry": {
+        "name": "Opnieuw proberen"
+      },
+      "job_enable": {
+        "name": "Inschakelen"
+      },
+      "job_disable": {
+        "name": "Uitschakelen"
+      }
+    }
+  },
+  "exceptions": {
+    "connection_error": {
+      "message": "Kan geen verbinding maken met Veeam-server op {host}:{port}"
+    },
+    "authentication_failed": {
+      "message": "Verificatie mislukt voor gebruiker {username}"
+    },
+    "api_error": {
+      "message": "Veeam API-fout: {error}"
+    },
+    "repository_rescan_failed": {
+      "message": "Opnieuw scannen van repository {repository_name} mislukt: {error}"
+    },
+    "extent_operation_failed": {
+      "message": "Bewerking {operation} voor extent {extent_name} mislukt: {error}"
+    },
+    "job_start_failed": {
+      "message": "Starten van job {job_name} mislukt: {error}"
+    },
+    "job_stop_failed": {
+      "message": "Stoppen van job {job_name} mislukt: {error}"
+    },
+    "job_retry_failed": {
+      "message": "Opnieuw proberen van job {job_name} mislukt: {error}"
+    },
+    "job_enable_failed": {
+      "message": "Inschakelen van job {job_name} mislukt: {error}"
+    },
+    "job_disable_failed": {
+      "message": "Uitschakelen van job {job_name} mislukt: {error}"
+    },
+    "timeout_error": {
+      "message": "Time-out bij verzoek aan Veeam-server"
+    },
+    "invalid_response": {
+      "message": "Ongeldige reactie ontvangen van Veeam-server"
+    }
+  },
+  "selector": {
+    "job_status": {
+      "options": {
+        "success": "Geslaagd",
+        "running": "Actief",
+        "failed": "Mislukt",
+        "warning": "Waarschuwing",
+        "unknown": "Onbekend"
+      }
+    },
+    "job_last_result": {
+      "options": {
+        "success": "Geslaagd",
+        "failed": "Mislukt",
+        "warning": "Waarschuwing",
+        "none": "Geen"
+      }
+    },
+    "license_status": {
+      "options": {
+        "valid": "Geldig",
+        "expired": "Verlopen",
+        "invalid": "Ongeldig"
+      }
     }
   }
 }
