@@ -89,10 +89,6 @@ class VeeamTokenManager:
         Returns:
             dict: Token information
         """
-        client = self._get_veeam_client()
         return {
             "is_connected": self._is_connected,
-            "has_access_token": bool(client._access_token) if client else False,
-            "has_refresh_token": bool(client._refresh_token) if client else False,
-            "expires_at": client._expires_at.isoformat() if client and client._expires_at else None,
         }

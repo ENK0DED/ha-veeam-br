@@ -138,14 +138,21 @@ class VeeamRepositoryRescanButton(CoordinatorEntity, ButtonEntity):
                 return
 
             # Call the rescan endpoint using VeeamClient
-            await vc.call(
-                vc.api("repositories").rescan_repositories,
-                body=body,
-            )
-
-            _LOGGER.info("Successfully triggered rescan for repository: %s", self._repo_name)
-            # Request coordinator update to refresh repository state
-            await self.coordinator.async_request_refresh()
+            try:
+                await vc.call(
+                    vc.api("repositories").rescan_repositories,
+                    body=body,
+                )
+                _LOGGER.info("Successfully triggered rescan for repository: %s", self._repo_name)
+                # Request coordinator update to refresh repository state
+                await self.coordinator.async_request_refresh()
+            except Exception as call_err:
+                _LOGGER.error(
+                    "Failed to rescan repository %s: %s",
+                    self._repo_name,
+                    call_err,
+                )
+                raise
 
         except Exception as err:
             _LOGGER.error("Error rescanning repository %s: %s", self._repo_name, err)

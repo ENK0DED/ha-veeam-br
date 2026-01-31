@@ -71,7 +71,8 @@ async def validate_input(hass: HomeAssistant, data: dict[str, Any]) -> dict[str,
 
         vc = await _test_connection()
 
-        if not vc or not vc._access_token:
+        # Verify connection was successful by attempting to access the client
+        if not vc:
             raise PermissionError("Authentication failed")
 
     except Exception as err:
