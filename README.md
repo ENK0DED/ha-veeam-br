@@ -193,4 +193,21 @@ This project is licensed under the terms included in the LICENSE file.
 
 ## Credits
 
-This integration uses the [veeam-br](https://github.com/Cenvora/veeam-br) Python library for communication with Veeam Backup & Replication servers. The library is automatically installed by Home Assistant when you add this integration - no manual installation required.
+This integration uses the [veeam-br](https://github.com/Cenvora/veeam-br) Python library for communication with Veeam Backup & Replication servers. 
+
+## Contributing
+Contributions are welcome! To contribute:
+- Fork the repository
+- Create a feature branch
+- Make your changes and add tests
+- Submit a pull request with a clear description
+
+Please follow PEP8 style and include docstrings for new functions/classes.
+
+## 🤝 Core Contributors
+This project is made possible thanks to the efforts of our core contributors:
+
+- [Jonah May](https://github.com/JonahMMay)  
+- [Maurice Kevenaar](https://github.com/mkevenaar)  
+
+We’re grateful for their continued support and contributions.
