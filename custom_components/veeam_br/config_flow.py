@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-import importlib
 import logging
 from typing import Any
 
@@ -48,22 +47,9 @@ def _get_api_version_selector_config(
 async def validate_input(hass: HomeAssistant, data: dict[str, Any]) -> dict[str, Any]:
     """Validate the user input allows us to connect."""
     api_version = data.get(CONF_API_VERSION, DEFAULT_API_VERSION)
-    api_module = API_VERSIONS.get(api_version, "v1_3_rev1")
 
     try:
-        client_module = importlib.import_module(f"veeam_br.{api_module}")
-        create_token_module = importlib.import_module(
-            f"veeam_br.{api_module}.api.login.create_token"
-        )
-        models_module = importlib.import_module(f"veeam_br.{api_module}.models.e_login_grant_type")
-        token_spec_module = importlib.import_module(
-            f"veeam_br.{api_module}.models.token_login_spec"
-        )
-
-        Client = client_module.Client
-        create_token = create_token_module
-        ELoginGrantType = models_module.ELoginGrantType
-        TokenLoginSpec = token_spec_module.TokenLoginSpec
+        from veeam_br.client import VeeamClient
     except ImportError as err:
         _LOGGER.error("Error importing veeam_br: %s", err)
         raise ConnectionError("Failed to import veeam_br modules") from err
@@ -72,21 +58,21 @@ async def validate_input(hass: HomeAssistant, data: dict[str, Any]) -> dict[str,
 
     try:
 
-        def _test_connection():
-            client = Client(
-                base_url=base_url, verify_ssl=data.get(CONF_VERIFY_SSL, DEFAULT_VERIFY_SSL)
-            )
-            body = TokenLoginSpec(
-                grant_type=ELoginGrantType.PASSWORD,
+        async def _test_connection():
+            vc = VeeamClient(
+                host=base_url,
                 username=data[CONF_USERNAME],
                 password=data[CONF_PASSWORD],
+                api_version=api_version,
+                verify_ssl=data.get(CONF_VERIFY_SSL, DEFAULT_VERIFY_SSL),
             )
-            with client:
-                return create_token.sync(client=client, body=body, x_api_version=api_version)
+            await vc.connect()
+            return vc
 
-        token_result = await hass.async_add_executor_job(_test_connection)
+        vc = await _test_connection()
 
-        if not token_result or not token_result.access_token:
+        # Verify connection was successful by attempting to access the client
+        if not vc:
             raise PermissionError("Authentication failed")
 
     except Exception as err:
