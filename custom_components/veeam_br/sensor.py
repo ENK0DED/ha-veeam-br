@@ -812,7 +812,7 @@ class VeeamRepositoryTypeSensor(VeeamRepositoryBaseSensor):
         if "cloud" in repo_type or "azure" in repo_type or "aws" in repo_type:
             return "mdi:cloud"
         if "scale" in repo_type or "sobr" in repo_type:
-            return "mdi:database-cluster"
+            return "mdi:database-multiple"
         return "mdi:database"
 
 
@@ -1199,4 +1199,4 @@ class VeeamSOBRExtentCountSensor(VeeamSOBRBaseSensor):
 
     @property
     def icon(self) -> str:
-        return "mdi:database-cluster"
+        return "mdi:counter"
