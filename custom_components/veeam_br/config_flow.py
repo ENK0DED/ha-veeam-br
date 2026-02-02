@@ -93,6 +93,7 @@ class VeeamBRConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
 
     async def async_step_reconfigure(self, user_input: dict[str, Any] | None = None) -> FlowResult:
         """Handle reconfiguration of the integration."""
+        errors: dict[str, str] = {}
         reconf_entry = self._get_reconfigure_entry()
 
         if user_input is not None:
@@ -109,17 +110,18 @@ class VeeamBRConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
             try:
                 await validate_input(self.hass, data)
             except PermissionError:
-                return self.async_abort(reason="invalid_auth")
+                errors["base"] = "invalid_auth"
             except ConnectionError:
-                return self.async_abort(reason="cannot_connect")
+                errors["base"] = "cannot_connect"
             except Exception:
                 _LOGGER.exception("Unexpected exception during reconfigure")
-                return self.async_abort(reason="unknown")
-
-            return self.async_update_reload_and_abort(
-                reconf_entry,
-                data=data,
-            )
+                errors["base"] = "unknown"
+            else:
+                return self.async_update_reload_and_abort(
+                    reconf_entry,
+                    data=data,
+                    reason="reconfigure_successful",
+                )
 
         return self.async_show_form(
             step_id="reconfigure",
@@ -139,6 +141,7 @@ class VeeamBRConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
                     ): cv.boolean,
                 }
             ),
+            errors=errors,
             description_placeholders={
                 "host": reconf_entry.data.get(CONF_HOST),
             },
@@ -176,6 +179,7 @@ class VeeamBRConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
                 return self.async_update_reload_and_abort(
                     reauth_entry,
                     data=data,
+                    reason="reauth_successful",
                 )
 
         return self.async_show_form(
