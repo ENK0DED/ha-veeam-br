@@ -23,6 +23,12 @@ on:
     tags:
       - 'v*'
 
+# Ensure only one instance of this workflow runs at a time to prevent
+# race conditions when committing to the default branch
+concurrency:
+  group: update-version
+  cancel-in-progress: false
+
 permissions:
   contents: write
 
