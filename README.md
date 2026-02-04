@@ -333,6 +333,23 @@ All pull requests are automatically validated with:
 - Home Assistant manifest validation (hassfest)
 - JSON schema validation
 
+### Release Process
+
+The version in `manifest.json` is automatically updated when a new release tag is created:
+
+1. Create and push a tag with the format `v*` (e.g., `v1.0.0`, `v0.3.1b3`)
+   ```bash
+   git tag v1.0.0
+   git push origin v1.0.0
+   ```
+
+2. The GitHub Actions workflow automatically:
+   - Extracts the version from the tag (removes the `v` prefix)
+   - Updates the `version` field in `custom_components/veeam_br/manifest.json`
+   - Commits and pushes the change to the main branch
+
+3. The updated manifest.json is now ready for the release
+
 ## License
 
 This project is licensed under the terms included in the LICENSE file.

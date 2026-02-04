@@ -1,3 +1,16 @@
+# This workflow automatically updates the version field in manifest.json
+# when a new release tag is pushed to the repository.
+#
+# Workflow:
+# 1. Triggers on any tag push matching the pattern 'v*' (e.g., v1.0.0, v0.3.1b3)
+# 2. Extracts the version from the tag by removing the 'v' prefix
+# 3. Updates the version field in custom_components/veeam_br/manifest.json
+# 4. Commits and pushes the change back to the main branch
+#
+# Example:
+# - Tag pushed: v1.2.3
+# - manifest.json version updated to: 1.2.3
+
 name: Update Version
 
 on:
