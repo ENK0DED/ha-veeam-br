@@ -342,11 +342,13 @@ The version in `manifest.json` is automatically updated when a new release tag i
    git tag v1.0.0
    git push origin v1.0.0
    ```
+   
+   **Note:** Tags should be created from the default branch to ensure consistency.
 
 2. The GitHub Actions workflow automatically:
    - Extracts the version from the tag (removes the `v` prefix)
    - Updates the `version` field in `custom_components/veeam_br/manifest.json`
-   - Commits and pushes the change to the main branch
+   - Commits and pushes the change to the default branch
 
 3. The updated manifest.json is now ready for the release
 

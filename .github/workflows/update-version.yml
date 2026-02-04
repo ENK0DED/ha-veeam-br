@@ -4,8 +4,13 @@
 # Workflow:
 # 1. Triggers on any tag push matching the pattern 'v*' (e.g., v1.0.0, v0.3.1b3)
 # 2. Extracts the version from the tag by removing the 'v' prefix
-# 3. Updates the version field in custom_components/veeam_br/manifest.json
-# 4. Commits and pushes the change back to the main branch
+# 3. Checks out the repository's default branch (e.g., main)
+# 4. Updates the version field in custom_components/veeam_br/manifest.json
+# 5. Commits and pushes the change back to the default branch
+#
+# Note: This workflow always commits to the default branch, regardless of where
+# the tag originated. Best practice is to create release tags from the default
+# branch to ensure consistency.
 #
 # Example:
 # - Tag pushed: v1.2.3
