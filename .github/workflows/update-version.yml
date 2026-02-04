@@ -110,6 +110,10 @@ jobs:
         run: |
           # Move the tag to point to the current HEAD (which now has updated manifest.json)
           # This ensures releases created from this tag will have the correct version
+          # 
+          # Note: This force-pushes the tag, which means:
+          # - Users who already fetched the tag may need to update: git fetch --tags --force
+          # - This is intentional to ensure tag always points to correct manifest.json
           git tag -f "${TAG_NAME}"
           git push -f origin "${TAG_NAME}"
           echo "✓ Moved tag ${TAG_NAME} to point to commit with updated manifest.json"
