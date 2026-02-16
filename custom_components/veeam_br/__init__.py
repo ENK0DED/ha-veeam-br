@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import asyncio
 from datetime import timedelta
 import importlib
 import logging
@@ -38,7 +39,9 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
 
     # Import UNSET type for proper type checking
     try:
-        types_module = importlib.import_module(f"veeam_br.{api_module}.types")
+        types_module = await asyncio.to_thread(
+            importlib.import_module, f"veeam_br.{api_module}.types"
+        )
         UNSET = types_module.UNSET
     except ImportError as err:
         _LOGGER.error("Failed to import veeam_br types: %s", err)
@@ -79,7 +82,8 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
             connected = True
 
             # Fetch jobs data
-            jobs_response = await veeam_client.call(veeam_client.api("jobs").get_all_jobs_states)
+            jobs_api = await asyncio.to_thread(veeam_client.api, "jobs")
+            jobs_response = await veeam_client.call(jobs_api.get_all_jobs_states)
 
             if not jobs_response:
                 raise UpdateFailed("Jobs API returned no data")
@@ -124,7 +128,8 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
             # Fetch server information
             server_info = None
             try:
-                server_data = await veeam_client.call(veeam_client.api("service").get_server_info)
+                service_api = await asyncio.to_thread(veeam_client.api, "service")
+                server_data = await veeam_client.call(service_api.get_server_info)
                 if server_data:
                     server_info = {
                         "vbr_id": getattr(server_data, "vbr_id", "Unknown"),
@@ -155,9 +160,8 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
             # Fetch license information
             license_info = None
             try:
-                license_data = await veeam_client.call(
-                    veeam_client.api("license_").get_installed_license
-                )
+                license_api = await asyncio.to_thread(veeam_client.api, "license_")
+                license_data = await veeam_client.call(license_api.get_installed_license)
                 if license_data:
 
                     # Helper function to safely get enum value from object attribute
@@ -254,11 +258,10 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
                         )
                         return None
 
-                repositories_result = await veeam_client.call(
-                    veeam_client.api("repositories").get_all_repositories
-                )
+                repositories_api = await asyncio.to_thread(veeam_client.api, "repositories")
+                repositories_result = await veeam_client.call(repositories_api.get_all_repositories)
                 repositories_states_result = await veeam_client.call(
-                    veeam_client.api("repositories").get_all_repositories_states
+                    repositories_api.get_all_repositories_states
                 )
 
                 if repositories_result:
@@ -372,9 +375,8 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
             # Fetch Scale-Out Backup Repositories (SOBRs)
             sobr_list = []
             try:
-                sobr_result = await veeam_client.call(
-                    veeam_client.api("repositories").get_all_scale_out_repositories
-                )
+                sobr_api = await asyncio.to_thread(veeam_client.api, "repositories")
+                sobr_result = await veeam_client.call(sobr_api.get_all_scale_out_repositories)
 
                 if sobr_result:
                     sobr_data = sobr_result.data if sobr_result else []

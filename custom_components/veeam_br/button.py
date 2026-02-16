@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import asyncio
 import importlib
 import logging
 
@@ -274,8 +275,9 @@ class VeeamRepositoryRescanButton(CoordinatorEntity, ButtonEntity):
             # Trigger the rescan using veeam-br library VeeamClient
             try:
                 # Import the body model for the rescan request
-                models_module = importlib.import_module(
-                    f"veeam_br.{api_module}.models.repositories_rescan_spec"
+                models_module = await asyncio.to_thread(
+                    importlib.import_module,
+                    f"veeam_br.{api_module}.models.repositories_rescan_spec",
                 )
                 RepositoriesRescanSpec = models_module.RepositoriesRescanSpec
                 body = RepositoriesRescanSpec(repository_ids=[self._repo_id])
@@ -287,8 +289,9 @@ class VeeamRepositoryRescanButton(CoordinatorEntity, ButtonEntity):
 
             # Call the rescan endpoint using VeeamClient
             try:
+                repositories_api = await asyncio.to_thread(self._veeam_client.api, "repositories")
                 await self._veeam_client.call(
-                    self._veeam_client.api("repositories").rescan_repositories,
+                    repositories_api.rescan_repositories,
                     body=body,
                 )
                 _LOGGER.info("Successfully triggered rescan for repository: %s", self._repo_name)
@@ -368,8 +371,9 @@ class VeeamSOBRExtentEnableSealedModeButton(VeeamSOBRExtentButtonBase):
 
             # Import the body model for the request
             try:
-                models_module = importlib.import_module(
-                    f"veeam_br.{api_module}.models.scale_out_extent_maintenance_spec"
+                models_module = await asyncio.to_thread(
+                    importlib.import_module,
+                    f"veeam_br.{api_module}.models.scale_out_extent_maintenance_spec",
                 )
                 ScaleOutExtentMaintenanceSpec = models_module.ScaleOutExtentMaintenanceSpec
                 body = ScaleOutExtentMaintenanceSpec(repository_ids=[self._extent_id])
@@ -382,8 +386,9 @@ class VeeamSOBRExtentEnableSealedModeButton(VeeamSOBRExtentButtonBase):
 
             # Call the enable sealed mode endpoint
             try:
+                repositories_api = await asyncio.to_thread(self._veeam_client.api, "repositories")
                 await self._veeam_client.call(
-                    self._veeam_client.api("repositories").enable_scale_out_extent_sealed_mode,
+                    repositories_api.enable_scale_out_extent_sealed_mode,
                     id=self._sobr_id,
                     body=body,
                 )
@@ -441,8 +446,9 @@ class VeeamSOBRExtentDisableSealedModeButton(VeeamSOBRExtentButtonBase):
 
             # Import the body model for the request
             try:
-                models_module = importlib.import_module(
-                    f"veeam_br.{api_module}.models.scale_out_extent_maintenance_spec"
+                models_module = await asyncio.to_thread(
+                    importlib.import_module,
+                    f"veeam_br.{api_module}.models.scale_out_extent_maintenance_spec",
                 )
                 ScaleOutExtentMaintenanceSpec = models_module.ScaleOutExtentMaintenanceSpec
                 body = ScaleOutExtentMaintenanceSpec(repository_ids=[self._extent_id])
@@ -455,8 +461,9 @@ class VeeamSOBRExtentDisableSealedModeButton(VeeamSOBRExtentButtonBase):
 
             # Call the disable sealed mode endpoint
             try:
+                repositories_api = await asyncio.to_thread(self._veeam_client.api, "repositories")
                 await self._veeam_client.call(
-                    self._veeam_client.api("repositories").disable_scale_out_extent_sealed_mode,
+                    repositories_api.disable_scale_out_extent_sealed_mode,
                     id=self._sobr_id,
                     body=body,
                 )
@@ -514,8 +521,9 @@ class VeeamSOBRExtentEnableMaintenanceModeButton(VeeamSOBRExtentButtonBase):
 
             # Import the body model for the request
             try:
-                models_module = importlib.import_module(
-                    f"veeam_br.{api_module}.models.scale_out_extent_maintenance_spec"
+                models_module = await asyncio.to_thread(
+                    importlib.import_module,
+                    f"veeam_br.{api_module}.models.scale_out_extent_maintenance_spec",
                 )
                 ScaleOutExtentMaintenanceSpec = models_module.ScaleOutExtentMaintenanceSpec
                 body = ScaleOutExtentMaintenanceSpec(repository_ids=[self._extent_id])
@@ -529,8 +537,9 @@ class VeeamSOBRExtentEnableMaintenanceModeButton(VeeamSOBRExtentButtonBase):
 
             # Call the enable maintenance mode endpoint
             try:
+                repositories_api = await asyncio.to_thread(self._veeam_client.api, "repositories")
                 await self._veeam_client.call(
-                    self._veeam_client.api("repositories").enable_scale_out_extent_maintenance_mode,
+                    repositories_api.enable_scale_out_extent_maintenance_mode,
                     id=self._sobr_id,
                     body=body,
                 )
@@ -588,8 +597,9 @@ class VeeamSOBRExtentDisableMaintenanceModeButton(VeeamSOBRExtentButtonBase):
 
             # Import the body model for the request
             try:
-                models_module = importlib.import_module(
-                    f"veeam_br.{api_module}.models.scale_out_extent_maintenance_spec"
+                models_module = await asyncio.to_thread(
+                    importlib.import_module,
+                    f"veeam_br.{api_module}.models.scale_out_extent_maintenance_spec",
                 )
                 ScaleOutExtentMaintenanceSpec = models_module.ScaleOutExtentMaintenanceSpec
                 body = ScaleOutExtentMaintenanceSpec(repository_ids=[self._extent_id])
@@ -603,10 +613,9 @@ class VeeamSOBRExtentDisableMaintenanceModeButton(VeeamSOBRExtentButtonBase):
 
             # Call the disable maintenance mode endpoint
             try:
+                repositories_api = await asyncio.to_thread(self._veeam_client.api, "repositories")
                 await self._veeam_client.call(
-                    self._veeam_client.api(
-                        "repositories"
-                    ).disable_scale_out_extent_maintenance_mode,
+                    repositories_api.disable_scale_out_extent_maintenance_mode,
                     id=self._sobr_id,
                     body=body,
                 )
@@ -672,7 +681,7 @@ class VeeamJobButtonBase(CoordinatorEntity, ButtonEntity):
         )
         return API_VERSIONS.get(api_version, "v1_3_rev1")
 
-    def _import_spec_model(self, spec_name: str):
+    async def _import_spec_model(self, spec_name: str):
         """Import a spec model from the veeam_br library.
 
         Args:
@@ -686,7 +695,9 @@ class VeeamJobButtonBase(CoordinatorEntity, ButtonEntity):
             AttributeError: If the model class cannot be found
         """
         api_module = self._get_api_module()
-        models_module = importlib.import_module(f"veeam_br.{api_module}.models.{spec_name}")
+        models_module = await asyncio.to_thread(
+            importlib.import_module, f"veeam_br.{api_module}.models.{spec_name}"
+        )
         # Convert snake_case to PascalCase for class name
         class_name = "".join(word.capitalize() for word in spec_name.split("_"))
         return getattr(models_module, class_name)
@@ -710,7 +721,7 @@ class VeeamJobStartButton(VeeamJobButtonBase):
         """Handle the button press to start the job."""
         # Import the body model for the start request
         try:
-            JobStartSpec = self._import_spec_model("job_start_spec")
+            JobStartSpec = await self._import_spec_model("job_start_spec")
             body = JobStartSpec(perform_active_full=False)
         except (ImportError, AttributeError) as e:
             _LOGGER.error("Failed to import JobStartSpec: %s. Cannot start job.", e)
@@ -718,8 +729,9 @@ class VeeamJobStartButton(VeeamJobButtonBase):
 
         # Call the start endpoint using VeeamClient
         try:
+            jobs_api = await asyncio.to_thread(self._veeam_client.api, "jobs")
             await self._veeam_client.call(
-                self._veeam_client.api("jobs").start_job,
+                jobs_api.start_job,
                 id=self._job_id,
                 body=body,
             )
@@ -753,7 +765,7 @@ class VeeamJobStopButton(VeeamJobButtonBase):
         """Handle the button press to stop the job."""
         # Import the body model for the stop request
         try:
-            JobStopSpec = self._import_spec_model("job_stop_spec")
+            JobStopSpec = await self._import_spec_model("job_stop_spec")
             # JobStopSpec typically has no required parameters
             body = JobStopSpec()
         except (ImportError, AttributeError) as e:
@@ -762,8 +774,9 @@ class VeeamJobStopButton(VeeamJobButtonBase):
 
         # Call the stop endpoint using VeeamClient
         try:
+            jobs_api = await asyncio.to_thread(self._veeam_client.api, "jobs")
             await self._veeam_client.call(
-                self._veeam_client.api("jobs").stop_job,
+                jobs_api.stop_job,
                 id=self._job_id,
                 body=body,
             )
@@ -797,7 +810,7 @@ class VeeamJobRetryButton(VeeamJobButtonBase):
         """Handle the button press to retry the job."""
         # Import the body model for the retry request
         try:
-            JobRetrySpec = self._import_spec_model("job_retry_spec")
+            JobRetrySpec = await self._import_spec_model("job_retry_spec")
             # JobRetrySpec typically has no required parameters
             body = JobRetrySpec()
         except (ImportError, AttributeError) as e:
@@ -806,8 +819,9 @@ class VeeamJobRetryButton(VeeamJobButtonBase):
 
         # Call the retry endpoint using VeeamClient
         try:
+            jobs_api = await asyncio.to_thread(self._veeam_client.api, "jobs")
             await self._veeam_client.call(
-                self._veeam_client.api("jobs").retry_job,
+                jobs_api.retry_job,
                 id=self._job_id,
                 body=body,
             )
@@ -841,8 +855,9 @@ class VeeamJobEnableButton(VeeamJobButtonBase):
         """Handle the button press to enable the job."""
         # Call the enable endpoint using VeeamClient
         try:
+            jobs_api = await asyncio.to_thread(self._veeam_client.api, "jobs")
             await self._veeam_client.call(
-                self._veeam_client.api("jobs").enable_job,
+                jobs_api.enable_job,
                 id=self._job_id,
             )
             _LOGGER.info("Successfully enabled job: %s", self._job_name)
@@ -875,8 +890,9 @@ class VeeamJobDisableButton(VeeamJobButtonBase):
         """Handle the button press to disable the job."""
         # Call the disable endpoint using VeeamClient
         try:
+            jobs_api = await asyncio.to_thread(self._veeam_client.api, "jobs")
             await self._veeam_client.call(
-                self._veeam_client.api("jobs").disable_job,
+                jobs_api.disable_job,
                 id=self._job_id,
             )
             _LOGGER.info("Successfully disabled job: %s", self._job_name)
