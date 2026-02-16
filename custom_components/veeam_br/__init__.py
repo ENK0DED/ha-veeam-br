@@ -47,6 +47,15 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
         _LOGGER.error("Failed to import veeam_br types: %s", err)
         return False
 
+    # Pre-import API modules to avoid blocking calls in event loop
+    # The veeam_br library uses dynamic imports which can block the event loop
+    try:
+        await asyncio.to_thread(
+            importlib.import_module, f"veeam_br.{api_module}.api.login.create_token"
+        )
+    except ImportError as err:
+        _LOGGER.warning("Failed to pre-import login module: %s", err)
+
     host = entry.data[CONF_HOST]
     port = entry.data[CONF_PORT]
     base_url = f"https://{host}:{port}"
@@ -66,6 +75,24 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     except Exception as err:
         _LOGGER.error("Failed to connect to Veeam API: %s", err)
         return False
+
+    # Pre-import API endpoint modules to avoid blocking calls in event loop
+    # The veeam_br library dynamically imports these modules during API calls
+    api_endpoints = [
+        "jobs.get_all_jobs_states",
+        "service.get_server_info",
+        "license_.get_installed_license",
+        "repositories.get_all_repositories",
+        "repositories.get_all_repositories_states",
+        "repositories.get_all_scale_out_repositories",
+    ]
+    for endpoint in api_endpoints:
+        try:
+            await asyncio.to_thread(
+                importlib.import_module, f"veeam_br.{api_module}.api.{endpoint}"
+            )
+        except ImportError as err:
+            _LOGGER.debug("Could not pre-import %s: %s", endpoint, err)
 
     async def async_update_data():
         """Fetch data from API."""

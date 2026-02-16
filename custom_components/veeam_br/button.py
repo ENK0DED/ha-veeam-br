@@ -37,6 +37,35 @@ async def async_setup_entry(
     coordinator = entry.runtime_data["coordinator"]
     veeam_client = entry.runtime_data["veeam_client"]
 
+    # Pre-import API endpoint modules to avoid blocking calls in event loop
+    # Get the configured API version for proper module path
+    api_version = entry.options.get(
+        CONF_API_VERSION,
+        entry.data.get(CONF_API_VERSION, DEFAULT_API_VERSION),
+    )
+    api_module = API_VERSIONS.get(api_version, "v1_3_rev1")
+
+    # Pre-import button API endpoints
+    button_endpoints = [
+        "jobs.start_job",
+        "jobs.stop_job",
+        "jobs.retry_job",
+        "jobs.enable_job",
+        "jobs.disable_job",
+        "repositories.rescan_repositories",
+        "repositories.enable_scale_out_extent_sealed_mode",
+        "repositories.disable_scale_out_extent_sealed_mode",
+        "repositories.enable_scale_out_extent_maintenance_mode",
+        "repositories.disable_scale_out_extent_maintenance_mode",
+    ]
+    for endpoint in button_endpoints:
+        try:
+            await asyncio.to_thread(
+                importlib.import_module, f"veeam_br.{api_module}.api.{endpoint}"
+            )
+        except ImportError as err:
+            _LOGGER.debug("Could not pre-import %s: %s", endpoint, err)
+
     added_repository_ids: set[str] = set()
     added_sobr_extent_ids: set[tuple[str, str]] = set()  # (sobr_id, extent_id) tuples
     added_job_ids: set[str] = set()
