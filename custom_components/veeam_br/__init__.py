@@ -259,9 +259,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
                         return None
 
                 repositories_api = await asyncio.to_thread(veeam_client.api, "repositories")
-                repositories_result = await veeam_client.call(
-                    repositories_api.get_all_repositories
-                )
+                repositories_result = await veeam_client.call(repositories_api.get_all_repositories)
                 repositories_states_result = await veeam_client.call(
                     repositories_api.get_all_repositories_states
                 )
@@ -378,9 +376,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
             sobr_list = []
             try:
                 sobr_api = await asyncio.to_thread(veeam_client.api, "repositories")
-                sobr_result = await veeam_client.call(
-                    sobr_api.get_all_scale_out_repositories
-                )
+                sobr_result = await veeam_client.call(sobr_api.get_all_scale_out_repositories)
 
                 if sobr_result:
                     sobr_data = sobr_result.data if sobr_result else []
