@@ -369,6 +369,29 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
                                                         days_count,
                                                     )
 
+                                # Immutability for Linux Hardened repos
+                                # stored in additional_properties["repository"]["makeRecentBackupsImmutableDays"]
+                                if "is_immutable" not in repo_dict:
+                                    hlr_repo = repo.additional_properties.get("repository")
+                                    if isinstance(hlr_repo, dict):
+                                        hlr_days = hlr_repo.get("makeRecentBackupsImmutableDays")
+                                        if hlr_days is not None:
+                                            is_immutable = int(hlr_days) > 0
+                                            repo_dict["is_immutable"] = is_immutable
+                                            _LOGGER.info(
+                                                "Repository %s: HLR immutability, makeRecentBackupsImmutableDays=%s, is_immutable=%s",
+                                                repo_dict.get("name"),
+                                                hlr_days,
+                                                is_immutable,
+                                            )
+                                            if is_immutable:
+                                                repo_dict["immutability_days"] = int(hlr_days)
+                                                _LOGGER.debug(
+                                                    "Repository %s: immutability_days=%s",
+                                                    repo_dict.get("name"),
+                                                    hlr_days,
+                                                )
+
                             # Accessible - use is_online from state as a proxy
                             repo_dict["is_accessible"] = repo_dict.get("is_online")
 
