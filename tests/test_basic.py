@@ -276,3 +276,55 @@ def test_async_dependency():
     assert (
         "await veeam_client.call(" in init_content
     ), "Should use async call method (veeam-br is async)"
+
+
+def test_stale_entity_cleanup_uses_registry_scan():
+    """Test that stale entity cleanup scans the registry directly (not just session-tracked IDs).
+
+    The cleanup must scan the entity registry rather than comparing session-scoped
+    tracking sets so that entities persisted from previous HA sessions are also
+    removed when their corresponding job/repo/SOBR no longer exists.
+    """
+    from pathlib import Path
+
+    sensor_path = Path(__file__).parent.parent / "custom_components" / "veeam_br" / "sensor.py"
+    button_path = Path(__file__).parent.parent / "custom_components" / "veeam_br" / "button.py"
+
+    with open(sensor_path) as f:
+        sensor_content = f.read()
+
+    with open(button_path) as f:
+        button_content = f.read()
+
+    # The old approach iterated over stale_job_ids (session-scoped diff) and matched
+    # entity unique_ids by substring. The new approach must scan the full registry
+    # using async_entries_for_config_entry and compare against current API data.
+    # Verify the new approach is used instead of the old set-difference pattern.
+    assert "stale_job_ids = current_job_ids - current_jobs_in_data" not in sensor_content, (
+        "sensor.py should not use session-scoped set-difference for stale job detection"
+    )
+    assert "stale_repo_ids = current_repo_ids - current_repos_in_data" not in sensor_content, (
+        "sensor.py should not use session-scoped set-difference for stale repo detection"
+    )
+    assert "stale_sobr_ids = current_sobr_ids - current_sobrs_in_data" not in sensor_content, (
+        "sensor.py should not use session-scoped set-difference for stale SOBR detection"
+    )
+    assert "stale_job_ids = current_job_ids - current_jobs_in_data" not in button_content, (
+        "button.py should not use session-scoped set-difference for stale job detection"
+    )
+
+    # Verify that the cleanup uses entity registry scanning
+    assert "async_entries_for_config_entry" in sensor_content, (
+        "sensor.py stale cleanup should scan the entity registry"
+    )
+    assert "async_entries_for_config_entry" in button_content, (
+        "button.py stale cleanup should scan the entity registry"
+    )
+
+    # Verify that device registry cleanup is present in sensor.py
+    assert "device_registry" in sensor_content or "dr.async_get" in sensor_content, (
+        "sensor.py should clean up orphaned devices from the device registry"
+    )
+    assert "async_remove_device" in sensor_content, (
+        "sensor.py should remove orphaned devices via device_registry.async_remove_device"
+    )

@@ -190,11 +190,17 @@ async def async_setup_entry(
         current_sobr_extent_ids: set[tuple[str, str]],
         current_job_ids: set[str],
     ) -> None:
-        """Remove button entities for repos/sobrs/jobs that no longer exist."""
+        """Remove button entities for repos/sobrs/jobs that no longer exist.
+
+        Scans the entity registry directly so that button entities persisted
+        from previous HA sessions are also cleaned up, not only those added in
+        the current session.
+        """
         if not coordinator.data:
             return
 
         entity_reg = er.async_get(hass)
+        entry_id = entry.entry_id
 
         # Get current IDs from coordinator data
         current_repos_in_data = {
@@ -205,7 +211,7 @@ async def async_setup_entry(
         }
 
         # Track current SOBR extents in data
-        current_sobr_extents_in_data = set()
+        current_sobr_extents_in_data: set[tuple[str, str]] = set()
         for sobr in coordinator.data.get("sobrs", []):
             sobr_id = sobr.get("id")
             if sobr_id:
@@ -214,32 +220,42 @@ async def async_setup_entry(
                     if extent_id:
                         current_sobr_extents_in_data.add((sobr_id, extent_id))
 
-        # Find stale repository buttons
-        stale_repo_ids = current_repo_ids - current_repos_in_data
-        for repo_id in stale_repo_ids:
-            for entity in er.async_entries_for_config_entry(entity_reg, entry.entry_id):
-                if entity.unique_id and f"repository_{repo_id}_rescan" in entity.unique_id:
-                    _LOGGER.info("Removing stale repository button: %s", entity.entity_id)
-                    entity_reg.async_remove(entity.entity_id)
-            current_repo_ids.discard(repo_id)
+        # Build unique_id prefixes for active entities
+        active_job_prefixes = {f"{entry_id}_job_{job_id}_" for job_id in current_jobs_in_data}
+        active_repo_prefixes = {
+            f"{entry_id}_repository_{repo_id}_" for repo_id in current_repos_in_data
+        }
+        active_sobr_extent_prefixes = {
+            f"{entry_id}_sobr_{sobr_id}_extent_{extent_id}_"
+            for sobr_id, extent_id in current_sobr_extents_in_data
+        }
 
-        # Find stale SOBR extent buttons
-        stale_sobr_extents = current_sobr_extent_ids - current_sobr_extents_in_data
-        for sobr_id, extent_id in stale_sobr_extents:
-            for entity in er.async_entries_for_config_entry(entity_reg, entry.entry_id):
-                if entity.unique_id and f"sobr_{sobr_id}_extent_{extent_id}" in entity.unique_id:
-                    _LOGGER.info("Removing stale SOBR extent button: %s", entity.entity_id)
-                    entity_reg.async_remove(entity.entity_id)
-            current_sobr_extent_ids.discard((sobr_id, extent_id))
+        # Scan all registered button entities for this config entry and remove stale ones.
+        # Using list() to avoid mutating the iterable while iterating.
+        for entity in list(er.async_entries_for_config_entry(entity_reg, entry_id)):
+            if not entity.unique_id:
+                continue
+            unique_id = entity.unique_id
 
-        # Find stale job buttons
-        stale_job_ids = current_job_ids - current_jobs_in_data
-        for job_id in stale_job_ids:
-            for entity in er.async_entries_for_config_entry(entity_reg, entry.entry_id):
-                if entity.unique_id and f"job_{job_id}" in entity.unique_id:
+            if unique_id.startswith(f"{entry_id}_job_"):
+                if not any(unique_id.startswith(p) for p in active_job_prefixes):
                     _LOGGER.info("Removing stale job button: %s", entity.entity_id)
                     entity_reg.async_remove(entity.entity_id)
-            current_job_ids.discard(job_id)
+
+            elif unique_id.startswith(f"{entry_id}_repository_"):
+                if not any(unique_id.startswith(p) for p in active_repo_prefixes):
+                    _LOGGER.info("Removing stale repository button: %s", entity.entity_id)
+                    entity_reg.async_remove(entity.entity_id)
+
+            elif unique_id.startswith(f"{entry_id}_sobr_") and "_extent_" in unique_id:
+                if not any(unique_id.startswith(p) for p in active_sobr_extent_prefixes):
+                    _LOGGER.info("Removing stale SOBR extent button: %s", entity.entity_id)
+                    entity_reg.async_remove(entity.entity_id)
+
+        # Update tracking sets to reflect only IDs still present in the API
+        current_job_ids.intersection_update(current_jobs_in_data)
+        current_repo_ids.intersection_update(current_repos_in_data)
+        current_sobr_extent_ids.intersection_update(current_sobr_extents_in_data)
 
     # First attempt (after first refresh already ran)
     _sync_entities()
