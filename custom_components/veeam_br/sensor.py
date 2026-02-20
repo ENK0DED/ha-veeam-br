@@ -10,6 +10,7 @@ from homeassistant.components.sensor import SensorDeviceClass, SensorEntity, Sen
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.const import EntityCategory
 from homeassistant.core import HomeAssistant, callback
+from homeassistant.helpers import device_registry as dr
 from homeassistant.helpers import entity_registry as er
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 from homeassistant.helpers.update_coordinator import CoordinatorEntity
@@ -189,11 +190,18 @@ async def async_setup_entry(
         current_repo_ids: set[str],
         current_sobr_ids: set[str],
     ) -> None:
-        """Remove entities for jobs/repos/sobrs that no longer exist."""
+        """Remove entities and devices for jobs/repos/sobrs that no longer exist.
+
+        Scans the entity registry directly so that entities persisted from
+        previous HA sessions are also cleaned up, not only those added in the
+        current session.
+        """
         if not coordinator.data:
             return
 
         entity_reg = er.async_get(hass)
+        device_reg = dr.async_get(hass)
+        entry_id = entry.entry_id
 
         # Get current IDs from coordinator data
         current_jobs_in_data = {
@@ -206,33 +214,63 @@ async def async_setup_entry(
             sobr.get("id") for sobr in coordinator.data.get("sobrs", []) if sobr.get("id")
         }
 
-        # Find stale job entities
-        stale_job_ids = current_job_ids - current_jobs_in_data
-        for job_id in stale_job_ids:
-            # Remove all entities for this job
-            for entity in er.async_entries_for_config_entry(entity_reg, entry.entry_id):
-                if entity.unique_id and f"job_{job_id}" in entity.unique_id:
+        # Build unique_id prefixes for active jobs/repos/sobrs
+        active_job_prefixes = {f"{entry_id}_job_{job_id}_" for job_id in current_jobs_in_data}
+        active_repo_prefixes = {
+            f"{entry_id}_repository_{repo_id}_" for repo_id in current_repos_in_data
+        }
+        active_sobr_prefixes = {f"{entry_id}_sobr_{sobr_id}_" for sobr_id in current_sobrs_in_data}
+
+        # Scan all registered entities for this config entry and remove stale ones.
+        # Using list() to avoid mutating the iterable while iterating.
+        for entity in list(er.async_entries_for_config_entry(entity_reg, entry_id)):
+            if not entity.unique_id:
+                continue
+            unique_id = entity.unique_id
+
+            if unique_id.startswith(f"{entry_id}_job_"):
+                if not any(unique_id.startswith(p) for p in active_job_prefixes):
                     _LOGGER.info("Removing stale job entity: %s", entity.entity_id)
                     entity_reg.async_remove(entity.entity_id)
-            current_job_ids.discard(job_id)
 
-        # Find stale repository entities
-        stale_repo_ids = current_repo_ids - current_repos_in_data
-        for repo_id in stale_repo_ids:
-            for entity in er.async_entries_for_config_entry(entity_reg, entry.entry_id):
-                if entity.unique_id and f"repository_{repo_id}" in entity.unique_id:
+            elif unique_id.startswith(f"{entry_id}_repository_"):
+                if not any(unique_id.startswith(p) for p in active_repo_prefixes):
                     _LOGGER.info("Removing stale repository entity: %s", entity.entity_id)
                     entity_reg.async_remove(entity.entity_id)
-            current_repo_ids.discard(repo_id)
 
-        # Find stale SOBR entities
-        stale_sobr_ids = current_sobr_ids - current_sobrs_in_data
-        for sobr_id in stale_sobr_ids:
-            for entity in er.async_entries_for_config_entry(entity_reg, entry.entry_id):
-                if entity.unique_id and f"sobr_{sobr_id}" in entity.unique_id:
+            elif unique_id.startswith(f"{entry_id}_sobr_"):
+                if not any(unique_id.startswith(p) for p in active_sobr_prefixes):
                     _LOGGER.info("Removing stale SOBR entity: %s", entity.entity_id)
                     entity_reg.async_remove(entity.entity_id)
-            current_sobr_ids.discard(sobr_id)
+
+        # Remove orphaned devices for jobs/repos/sobrs no longer present in API data.
+        for device in list(dr.async_entries_for_config_entry(device_reg, entry_id)):
+            for domain, identifier in device.identifiers:
+                if domain != DOMAIN:
+                    continue
+                if identifier.startswith("job_"):
+                    job_id = identifier[len("job_") :]
+                    if job_id not in current_jobs_in_data:
+                        _LOGGER.info("Removing stale job device: %s", device.name)
+                        device_reg.async_remove_device(device.id)
+                        break
+                elif identifier.startswith("repository_"):
+                    repo_id = identifier[len("repository_") :]
+                    if repo_id not in current_repos_in_data:
+                        _LOGGER.info("Removing stale repository device: %s", device.name)
+                        device_reg.async_remove_device(device.id)
+                        break
+                elif identifier.startswith("sobr_"):
+                    sobr_id = identifier[len("sobr_") :]
+                    if sobr_id not in current_sobrs_in_data:
+                        _LOGGER.info("Removing stale SOBR device: %s", device.name)
+                        device_reg.async_remove_device(device.id)
+                        break
+
+        # Update tracking sets to reflect only IDs still present in the API
+        current_job_ids.intersection_update(current_jobs_in_data)
+        current_repo_ids.intersection_update(current_repos_in_data)
+        current_sobr_ids.intersection_update(current_sobrs_in_data)
 
     # First attempt (after first refresh already ran)
     _sync_entities()
