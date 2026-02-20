@@ -219,9 +219,7 @@ async def async_setup_entry(
         active_repo_prefixes = {
             f"{entry_id}_repository_{repo_id}_" for repo_id in current_repos_in_data
         }
-        active_sobr_prefixes = {
-            f"{entry_id}_sobr_{sobr_id}_" for sobr_id in current_sobrs_in_data
-        }
+        active_sobr_prefixes = {f"{entry_id}_sobr_{sobr_id}_" for sobr_id in current_sobrs_in_data}
 
         # Scan all registered entities for this config entry and remove stale ones.
         # Using list() to avoid mutating the iterable while iterating.
@@ -251,19 +249,19 @@ async def async_setup_entry(
                 if domain != DOMAIN:
                     continue
                 if identifier.startswith("job_"):
-                    job_id = identifier[len("job_"):]
+                    job_id = identifier[len("job_") :]
                     if job_id not in current_jobs_in_data:
                         _LOGGER.info("Removing stale job device: %s", device.name)
                         device_reg.async_remove_device(device.id)
                         break
                 elif identifier.startswith("repository_"):
-                    repo_id = identifier[len("repository_"):]
+                    repo_id = identifier[len("repository_") :]
                     if repo_id not in current_repos_in_data:
                         _LOGGER.info("Removing stale repository device: %s", device.name)
                         device_reg.async_remove_device(device.id)
                         break
                 elif identifier.startswith("sobr_"):
-                    sobr_id = identifier[len("sobr_"):]
+                    sobr_id = identifier[len("sobr_") :]
                     if sobr_id not in current_sobrs_in_data:
                         _LOGGER.info("Removing stale SOBR device: %s", device.name)
                         device_reg.async_remove_device(device.id)
