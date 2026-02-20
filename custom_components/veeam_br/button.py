@@ -10,6 +10,7 @@ from homeassistant.components.button import ButtonEntity
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.const import EntityCategory
 from homeassistant.core import HomeAssistant, callback
+from homeassistant.exceptions import HomeAssistantError
 from homeassistant.helpers import entity_registry as er
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 from homeassistant.helpers.update_coordinator import CoordinatorEntity
@@ -775,11 +776,13 @@ class VeeamJobStartButton(VeeamJobButtonBase):
         # Call the start endpoint using VeeamClient
         try:
             jobs_api = await asyncio.to_thread(self._veeam_client.api, "jobs")
-            await self._veeam_client.call(
+            result = await self._veeam_client.call(
                 jobs_api.start_job,
                 id=self._job_id,
                 body=body,
             )
+            if hasattr(result, "error_code"):
+                raise HomeAssistantError(f"API error: {result.message}")
             _LOGGER.info("Successfully started job: %s", self._job_name)
             # Request coordinator update to refresh job state
             await self.coordinator.async_request_refresh()
@@ -820,11 +823,13 @@ class VeeamJobStopButton(VeeamJobButtonBase):
         # Call the stop endpoint using VeeamClient
         try:
             jobs_api = await asyncio.to_thread(self._veeam_client.api, "jobs")
-            await self._veeam_client.call(
+            result = await self._veeam_client.call(
                 jobs_api.stop_job,
                 id=self._job_id,
                 body=body,
             )
+            if hasattr(result, "error_code"):
+                raise HomeAssistantError(f"API error: {result.message}")
             _LOGGER.info("Successfully stopped job: %s", self._job_name)
             # Request coordinator update to refresh job state
             await self.coordinator.async_request_refresh()
@@ -865,11 +870,13 @@ class VeeamJobRetryButton(VeeamJobButtonBase):
         # Call the retry endpoint using VeeamClient
         try:
             jobs_api = await asyncio.to_thread(self._veeam_client.api, "jobs")
-            await self._veeam_client.call(
+            result = await self._veeam_client.call(
                 jobs_api.retry_job,
                 id=self._job_id,
                 body=body,
             )
+            if hasattr(result, "error_code"):
+                raise HomeAssistantError(f"API error: {result.message}")
             _LOGGER.info("Successfully retried job: %s", self._job_name)
             # Request coordinator update to refresh job state
             await self.coordinator.async_request_refresh()
