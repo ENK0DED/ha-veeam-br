@@ -328,3 +328,22 @@ def test_stale_entity_cleanup_uses_registry_scan():
     assert "async_remove_device" in sensor_content, (
         "sensor.py should remove orphaned devices via device_registry.async_remove_device"
     )
+
+
+def test_hlr_immutability_logic():
+    """Test that Linux Hardened Repository immutability is extracted from makeRecentBackupsImmutableDays."""
+    from pathlib import Path
+
+    init_path = Path(__file__).parent.parent / "custom_components" / "veeam_br" / "__init__.py"
+
+    with open(init_path) as f:
+        content = f.read()
+
+    # Verify HLR immutability logic is present
+    assert "makeRecentBackupsImmutableDays" in content, (
+        "__init__.py should check makeRecentBackupsImmutableDays for Linux Hardened repos"
+    )
+    # Verify that HLR check is guarded so it doesn't override S3 immutability
+    assert '"is_immutable" not in repo_dict' in content, (
+        "HLR immutability check should only run when S3 immutability was not already found"
+    )
