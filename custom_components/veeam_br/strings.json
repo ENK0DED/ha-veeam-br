@@ -55,6 +55,7 @@
     "error": {
       "cannot_connect": "Failed to connect to Veeam server",
       "invalid_auth": "Invalid authentication credentials",
+      "invalid_host": "Host contains invalid characters",
       "unknown": "Unexpected error occurred"
     },
     "abort": {
