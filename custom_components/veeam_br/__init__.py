@@ -10,6 +10,7 @@ import logging
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.const import CONF_HOST, CONF_PASSWORD, CONF_PORT, CONF_USERNAME, Platform
 from homeassistant.core import HomeAssistant
+from homeassistant.exceptions import ConfigEntryNotReady
 from homeassistant.helpers.update_coordinator import DataUpdateCoordinator, UpdateFailed
 from homeassistant.util import dt as dt_util
 
@@ -73,8 +74,9 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     try:
         await veeam_client.connect()
     except Exception as err:
-        _LOGGER.error("Failed to connect to Veeam API: %s", err)
-        return False
+        raise ConfigEntryNotReady(
+            f"Unable to connect to Veeam server at {host}:{port}"
+        ) from err
 
     # Pre-import API endpoint modules to avoid blocking calls in event loop
     # The veeam_br library dynamically imports these modules during API calls
@@ -507,9 +509,8 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
             }
 
         except Exception as err:
-            # When an update fails, the coordinator retains the last successful data,
-            # so diagnostic sensors will continue to show the last successful poll time
-            raise UpdateFailed(f"Error communicating with API: {err}") from err
+            _LOGGER.error("Error communicating with Veeam API: %s", err)
+            raise UpdateFailed("Error communicating with Veeam API") from err
 
     coordinator = DataUpdateCoordinator(
         hass,

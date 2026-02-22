@@ -25,6 +25,16 @@ from .const import (
 _LOGGER = logging.getLogger(__name__)
 
 
+def _validate_host(value: Any) -> str:
+    """Validate that the host value is a safe hostname or IP address."""
+    value = cv.string(value).strip()
+    if not value:
+        raise vol.Invalid("Host cannot be empty")
+    if any(c in value for c in ("/", "\\", " ", "@", "#", "?")):
+        raise vol.Invalid("Host contains invalid characters")
+    return value
+
+
 def _get_api_version_selector_config(
     preferred_version: str | None = None,
 ) -> tuple[list[str], str]:
@@ -127,7 +137,9 @@ class VeeamBRConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
             step_id="reconfigure",
             data_schema=vol.Schema(
                 {
-                    vol.Required(CONF_HOST, default=reconf_entry.data.get(CONF_HOST)): cv.string,
+                    vol.Required(
+                        CONF_HOST, default=reconf_entry.data.get(CONF_HOST)
+                    ): _validate_host,
                     vol.Required(
                         CONF_PORT, default=reconf_entry.data.get(CONF_PORT, DEFAULT_PORT)
                     ): cv.port,
@@ -221,7 +233,7 @@ class VeeamBRConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
 
         data_schema = vol.Schema(
             {
-                vol.Required(CONF_HOST): cv.string,
+                vol.Required(CONF_HOST): _validate_host,
                 vol.Required(CONF_PORT, default=DEFAULT_PORT): cv.port,
                 vol.Required(CONF_USERNAME): cv.string,
                 vol.Required(CONF_PASSWORD): cv.string,
